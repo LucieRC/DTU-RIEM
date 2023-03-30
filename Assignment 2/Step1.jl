@@ -35,7 +35,8 @@ model = Model(Gurobi.Optimizer)
 
 optimize!(model)
 
-# value.(p_DA)
+value.(p_DA)
+profit = [sum(price_DA[t,w]*(p_DA[t] + 0.9*delta_more[t,w] - 1.2*delta_less[t,w]) t in 1:24) for w in 1:seenScenarios]
 # value.(delta)
 # value.(delta_more)
 # value.(delta_less)
