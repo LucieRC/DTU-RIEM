@@ -5,7 +5,7 @@ using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random
 P_real_raw = CSV.read("C:/Users/mscuc/Downloads/inputs_wind.csv", DataFrame, delim=",")
 price_raw = CSV.read("C:/Users/mscuc/Downloads/inputs_price.csv", DataFrame, delim=",")
 system_raw = CSV.read("C:/Users/mscuc/Downloads/inputs_system.csv", DataFrame, delim=",")
-
+#hi
 Random.seed!(69)
 scenarioOrdered = randperm(600)
 
