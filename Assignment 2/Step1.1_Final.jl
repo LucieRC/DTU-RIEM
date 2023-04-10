@@ -3,9 +3,9 @@
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random
 
 #Import the parameters from the CSVs, please change the directory
-p_Real_raw = CSV.read("C:/Users/mscuc/Downloads/inputs_wind.csv", DataFrame, delim=",")
-price_raw = CSV.read("C:/Users/mscuc/Downloads/inputs_price.csv", DataFrame, delim=",")
-system_raw = CSV.read("C:/Users/mscuc/Downloads/inputs_system.csv", DataFrame, delim=",")
+p_Real_raw = CSV.read("inputs_wind.csv", DataFrame, delim=",")
+price_raw = CSV.read("inputs_price.csv", DataFrame, delim=",")
+system_raw = CSV.read("inputs_system.csv", DataFrame, delim=",")
 
 #Re-order the parameters so the scenarios are random
 Random.seed!(69)
@@ -65,7 +65,7 @@ data = vcat(fill("p_DA", (1, 600)),
             fill("profit", (1, 600)),
             hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
 
-CSV.write("step 1.1.csv", Tables.table(data))
+# CSV.write("step_1_1.csv", Tables.table(data))
 
 #Our model goes all-or-nothing for the schedule. This binary decision comes from the binary system state of being in excess or deficit. 
 #In one price scheme, the wind farm can earn more money just by trying to guess what direction the imbalance will be in the system. 
