@@ -27,11 +27,9 @@ out_sample_scen = 400
 prob = 1/in_sample_scen
 P_nom = 150
 
-alpha = 0.9
-beta = 0.1*collect(0:10)
-vector = zeros(Float64, length(beta), 2)
+beta = 0.001
 
-function run_1_price_risk(beta)
+function run_1_price_risk(alpha)
     #Fill the balancing price based on the system
     for w in 1:600
         for t in 1:24
@@ -58,71 +56,33 @@ function run_1_price_risk(beta)
     return(value(zeta - 1/(1-alpha)*sum(prob*eta[w] for w in 1:in_sample_scen)), objective_value(model)) 
 end
 
-# to_store = ["beta" "CVar" "obj_function"]
-# print(to_store)
-# for count in range(1,10)
-#     risk, obj = run_1_price_risk(beta[count])
-#     to_store = vcat(to_store, [beta[count] risk obj])
-#     print(to_store)
-#     # vector[count,:] = [risk, obj]
-# end
-
-to_store = ["beta" "CVar" "obj_function"]
+to_store = ["alpha" "CVar" "obj_function"]
 
 
-beta = 0.0001*collect(0:10)
+alpha = 0.0001*collect(0:10)
 for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
+    risk, obj = run_1_price_risk(alpha[count])
+    to_store = vcat(to_store, [alpha[count] risk obj])
 end
 
-beta = 0.001*collect(0:10)
+alpha = 0.001*collect(0:10)
 for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
+    risk, obj = run_1_price_risk(alpha[count])
+    to_store = vcat(to_store, [alpha[count] risk obj])
 end
 
-beta = 0.01*collect(0:10)
+alpha = 0.01*collect(0:10)
 for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
+    risk, obj = run_1_price_risk(alpha[count])
+    to_store = vcat(to_store, [alpha[count] risk obj])
 end
 
-beta = 0.1*collect(0:10)
+alpha = 0.1*collect(0:10)
 for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
+    risk, obj = run_1_price_risk(alpha[count])
+    to_store = vcat(to_store, [alpha[count] risk obj])
 end
 
 
-CSV.write("outputs/step_1_4_1price_alpha0.9.csv", Tables.table(to_store))
+CSV.write("outputs/step_1_4_1price_beta0.001.csv", Tables.table(to_store))
 
-
-#Put the values of interest in a CSV
-# p_DA = value.(reshape(p_DA, 24, 1))
-# bal_price = zeros(AffExpr,24,200)
-# for t in 1:24, w in 1:200
-#     bal_price[t,w] = compute_bal_part(t,w)
-# end
-# profit = [sum(price_DA[t,w]*p_DA[t] + compute_bal_part(t,w) for t in 1:24) for w in 1:in_sample_scen]'
-
-# data = vcat(fill("p_DA", (1, 600)),
-#             hcat(p_DA, zeros(24, 599)),
-#             fill("DA_price", (1,600)),
-#             Matrix(price_DA),
-#             fill("bal_price",(1,600)),
-#             hcat(value.(bal_price), zeros(24, 400)),
-#             fill("delta", (1, 600)),
-#             hcat(value.(delta), zeros(24, 400)),
-#             fill("delta_more", (1, 600)),
-#             hcat(value.(delta_more), zeros(24, 400)),
-#             fill("delta_less", (1, 600)),
-#             hcat(value.(delta_less), zeros(24, 400)),
-#             fill("p_real", (1, 600)),
-#             Matrix(p_real),
-#             fill("system", (1, 600)),
-#             Matrix(system),
-#             fill("profit", (1, 600)),
-#             hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
-
-# CSV.write("step_1_2.csv", Tables.table(data))
