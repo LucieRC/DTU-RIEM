@@ -3,9 +3,9 @@
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
 #Import the parameters from the CSVs, please change the directory
-p_real_raw = CSV.read("inputs_wind.csv", DataFrame, delim=",")
-price_raw = CSV.read("inputs_price.csv", DataFrame, delim=",")
-system_raw = CSV.read("inputs_system.csv", DataFrame, delim=",")
+p_real_raw = CSV.read("inputs/inputs_wind.csv", DataFrame, delim=",")
+price_raw = CSV.read("inputs/inputs_price.csv", DataFrame, delim=",")
+system_raw = CSV.read("inputs/inputs_system.csv", DataFrame, delim=",")
 
 #Re-order the parameters so the scenarios are random
 Random.seed!(69)
@@ -24,9 +24,8 @@ out_sample_scen = 400
 prob = 1/in_sample_scen
 P_nom = 150
 
-alpha = 0.95
-beta = 0.1*collect(0:10)
-vector = zeros(Float64, length(beta), 2)
+alpha = 0.9
+# vector = zeros(Float64, length(beta), 2)
 
 function run_2_prices_risk(beta)
     function compute_bal_part(t,w)
@@ -58,12 +57,39 @@ end
 
 
 
-for count in 1:length(beta)
+# for count in 1:length(beta)
+#     risk, obj = run_2_prices_risk(beta[count])
+#     vector[count,:] = [risk, obj]
+# end
+
+to_store = ["beta" "CVar" "obj_function"]
+
+
+beta = 0.0001*collect(0:10)
+for count in range(1,10)
     risk, obj = run_2_prices_risk(beta[count])
-    vector[count,:] = [risk, obj]
+    to_store = vcat(to_store, [beta[count] risk obj])
 end
 
-CSV.write("step_1_4_2prices_apha0.95.csv", Tables.table(vector))
+beta = 0.001*collect(0:10)
+for count in range(1,10)
+    risk, obj = run_2_prices_risk(beta[count])
+    to_store = vcat(to_store, [beta[count] risk obj])
+end
+
+beta = 0.01*collect(0:10)
+for count in range(1,10)
+    risk, obj = run_2_prices_risk(beta[count])
+    to_store = vcat(to_store, [beta[count] risk obj])
+end
+
+beta = 0.1*collect(0:10)
+for count in range(1,10)
+    risk, obj = run_2_prices_risk(beta[count])
+    to_store = vcat(to_store, [beta[count] risk obj])
+end
+
+CSV.write("outputs/step_1_4_2prices_apha0.9.csv", Tables.table(to_store))
 
 
 #Put the values of interest in a CSV

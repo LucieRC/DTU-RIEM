@@ -27,7 +27,7 @@ out_sample_scen = 400
 prob = 1/in_sample_scen
 P_nom = 150
 
-alpha = 0.95
+alpha = 0.9
 beta = 0.1*collect(0:10)
 vector = zeros(Float64, length(beta), 2)
 

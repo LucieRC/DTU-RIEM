@@ -30,7 +30,7 @@ P_nom = 150
 
 function sensitivity_analysis(coef1, coef2)
     function compute_bal_part(t,w)
-        return system[t,w]*(coef1*price_DA[t,w]*delta_more[t,w] - 1*price_DA[t,w]*delta_less[t,w]) + (1-system[t,w])*(1*price_DA[t,w]*delta_more[t,w] - coeff2*price_DA[t,w]*delta_less[t,w])
+        return system[t,w]*(coef1*price_DA[t,w]*delta_more[t,w] - 1*price_DA[t,w]*delta_less[t,w]) + (1-system[t,w])*(1*price_DA[t,w]*delta_more[t,w] - coef2*price_DA[t,w]*delta_less[t,w])
     end
 
     model = Model(Gurobi.Optimizer)
@@ -65,16 +65,16 @@ for coef1 in 0.01*range(85,95)
     print(to_store)
     # vector[count,:] = [risk, obj]
 end
-CSV.write("step_1_3_coef1.csv", Tables.table(to_store))
+CSV.write("outputs/step_1_3_coef1.csv", Tables.table(to_store))
 
 # SECOND SENSITIVITY ANALYSIS
 coef1 = 0.9
 to_store = ["coef1" "coef2" "obj_function"]
 print(to_store)
-for coef2 in 0.1*range(11,13)
+for coef2 in 0.1*range(11,13,11)
     obj = sensitivity_analysis(coef1,coef2)
     to_store = vcat(to_store, [coef1 coef2 obj])
     print(to_store)
     # vector[count,:] = [risk, obj]
 end
-CSV.write("step_1_3_coef2.csv", Tables.table(to_store))
+CSV.write("outputs/step_1_3_coef2.csv", Tables.table(to_store))
