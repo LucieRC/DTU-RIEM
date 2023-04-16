@@ -2,6 +2,9 @@
 
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
+pwd()
+cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2")
+
 #Import the parameters from the CSVs, please change the directory
 p_real_raw = CSV.read("inputs_wind.csv", DataFrame, delim=",")
 price_raw = CSV.read("inputs_price.csv", DataFrame, delim=",")
@@ -55,12 +58,16 @@ function run_1_price_risk(beta)
     return(value(zeta - 1/(1-alpha)*sum(prob*eta[w] for w in 1:in_sample_scen)), objective_value(model)) 
 end
 
-for count in 1:length(beta)
+to_store = ["beta" "CVar" "obj_function"]
+print(to_store)
+for count in range(1,10)
     risk, obj = run_1_price_risk(beta[count])
-    vector[count,:] = [risk, obj]
+    to_store = vcat(to_store, [beta[count] risk obj])
+    print(to_store)
+    # vector[count,:] = [risk, obj]
 end
 
-CSV.write("step_1_4_1price_alpha0.95.csv", Tables.table(vector))
+CSV.write("step_1_4_1price_alpha0.95_small_incr4.csv", Tables.table(to_store))
 
 
 #Put the values of interest in a CSV

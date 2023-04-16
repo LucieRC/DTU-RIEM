@@ -1,5 +1,8 @@
 # Step 1.2
 
+pwd()
+cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2/")
+
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
 #Import the parameters from the CSVs, please change the directory
