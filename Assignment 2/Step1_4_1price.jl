@@ -27,11 +27,11 @@ out_sample_scen = 400
 prob = 1/in_sample_scen
 P_nom = 150
 
-alpha = 0.9
+alpha = [0.8 0.9 0.95]
 beta = 0.1*collect(0:10)
 vector = zeros(Float64, length(beta), 2)
 
-function run_1_price_risk(beta)
+function run_1_price_risk(alpha, beta)
     #Fill the balancing price based on the system
     for w in 1:600
         for t in 1:24
@@ -67,35 +67,35 @@ end
 #     # vector[count,:] = [risk, obj]
 # end
 
-to_store = ["beta" "CVar" "obj_function"]
+to_store = ["alpha" "beta" "CVar" "obj_function"]
 
+for alp in alpha
+    beta = 0.0001*collect(0:10)
+    for count in range(1,10)
+        risk, obj = run_1_price_risk(alp, beta[count])
+        to_store = vcat(to_store, [alp beta[count] risk obj])
+    end
 
-beta = 0.0001*collect(0:10)
-for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
+    beta = 0.001*collect(0:10)
+    for count in range(1,10)
+        risk, obj = run_1_price_risk(alp, beta[count])
+        to_store = vcat(to_store, [alp beta[count] risk obj])
+    end
+
+    beta = 0.01*collect(0:10)
+    for count in range(1,10)
+        risk, obj = run_1_price_risk(alp, beta[count])
+        to_store = vcat(to_store, [alp beta[count] risk obj])
+    end
+
+    beta = 0.1*collect(0:10)
+    for count in range(1,10)
+        risk, obj = run_1_price_risk(alp, beta[count])
+        to_store = vcat(to_store, [alp beta[count] risk obj])
+    end
 end
 
-beta = 0.001*collect(0:10)
-for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
-end
-
-beta = 0.01*collect(0:10)
-for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
-end
-
-beta = 0.1*collect(0:10)
-for count in range(1,10)
-    risk, obj = run_1_price_risk(beta[count])
-    to_store = vcat(to_store, [beta[count] risk obj])
-end
-
-
-CSV.write("outputs/step_1_4_1price_alpha0.9.csv", Tables.table(to_store))
+CSV.write("outputs/step_1_4_1price_alphas.csv", Tables.table(to_store))
 
 
 #Put the values of interest in a CSV
