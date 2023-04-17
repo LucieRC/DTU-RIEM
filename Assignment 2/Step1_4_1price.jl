@@ -1,5 +1,4 @@
 # Step 1.2
-
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
 pwd()
@@ -49,8 +48,8 @@ function run_1_price_risk(alpha, beta)
     @variable(model, delta[t in 1:24, w in 1:in_sample_scen])
     @variable(model, zeta)
     @variable(model, eta[w in 1:in_sample_scen] >= 0)
-    @objective(model, Max, sum(prob * sum(price_DA[t,w]*p_DA[t] + price_Bal[t,w]*delta[t,w] for w in 1:in_sample_scen) for t in 1:24) 
-                                + beta*(zeta - 1/(1-alpha)*sum(prob*eta[w] for w in 1:in_sample_scen)))
+    @objective(model, Max, (1-beta) * sum(prob * sum(price_DA[t,w]*p_DA[t] + price_Bal[t,w]*delta[t,w] for w in 1:in_sample_scen) for t in 1:24) 
+                                + beta * (zeta - 1/(1-alpha)*sum(prob*eta[w] for w in 1:in_sample_scen)))
     @constraint(model, cst1[t in 1:24], p_DA[t] <= P_nom)
     @constraint(model, cst2[t in 1:24, w in 1:in_sample_scen], delta[t,w] == p_real[t,w] - p_DA[t])
     @constraint(model, cst3[w in 1:in_sample_scen], -sum(price_DA[t,w]*p_DA[t] + price_Bal[t,w]*delta[t,w] for t in 1:24) + zeta - eta[w] <= 0)
@@ -70,11 +69,12 @@ end
 to_store = ["alpha" "beta" "CVar" "obj_function"]
 
 for alp in alpha
+    print(alpha)
     # beta = 0.0001*collect(0:10)
-    beta = collect()
-    for count in range(1,length(beta))
-        risk, obj = run_1_price_risk(alp, beta[count])
-        to_store = vcat(to_store, [alp beta[count] risk obj])
+    for idx in range(1,length(beta))
+        print(count)
+        risk, obj = run_1_price_risk(alp, beta[idx])
+        to_store = vcat(to_store, [alp beta[idx] risk obj])
     end
 
     # beta = 0.001*collect(0:10)
@@ -96,10 +96,10 @@ for alp in alpha
     # end
 end
 
-CSV.write("outputs/step_1_4_1_linearscale.csv", Tables.table(to_store))
+CSV.write("outputs/step_1_4_1price_withfactor.csv", Tables.table(to_store))
 
 
-#Put the values of interest in a CSV
+# #Put the values of interest in a CSV
 # p_DA = value.(reshape(p_DA, 24, 1))
 # bal_price = zeros(AffExpr,24,200)
 # for t in 1:24, w in 1:200
@@ -126,4 +126,4 @@ CSV.write("outputs/step_1_4_1_linearscale.csv", Tables.table(to_store))
 #             fill("profit", (1, 600)),
 #             hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
 
-# CSV.write("step_1_2.csv", Tables.table(data))
+# CSV.write("outputs/step1_4_1price.csv", Tables.table(data))
