@@ -70,32 +70,33 @@ end
 to_store = ["alpha" "beta" "CVar" "obj_function"]
 
 for alp in alpha
-    beta = 0.0001*collect(0:10)
-    for count in range(1,10)
+    # beta = 0.0001*collect(0:10)
+    beta = collect()
+    for count in range(1,length(beta))
         risk, obj = run_1_price_risk(alp, beta[count])
         to_store = vcat(to_store, [alp beta[count] risk obj])
     end
 
-    beta = 0.001*collect(0:10)
-    for count in range(1,10)
-        risk, obj = run_1_price_risk(alp, beta[count])
-        to_store = vcat(to_store, [alp beta[count] risk obj])
-    end
+    # beta = 0.001*collect(0:10)
+    # for count in range(1,10)
+    #     risk, obj = run_1_price_risk(alp, beta[count])
+    #     to_store = vcat(to_store, [alp beta[count] risk obj])
+    # end
 
-    beta = 0.01*collect(0:10)
-    for count in range(1,10)
-        risk, obj = run_1_price_risk(alp, beta[count])
-        to_store = vcat(to_store, [alp beta[count] risk obj])
-    end
+    # beta = 0.01*collect(0:10)
+    # for count in range(1,10)
+    #     risk, obj = run_1_price_risk(alp, beta[count])
+    #     to_store = vcat(to_store, [alp beta[count] risk obj])
+    # end
 
-    beta = 0.1*collect(0:10)
-    for count in range(1,10)
-        risk, obj = run_1_price_risk(alp, beta[count])
-        to_store = vcat(to_store, [alp beta[count] risk obj])
-    end
+    # beta = 0.1*collect(0:10)
+    # for count in range(1,10)
+    #     risk, obj = run_1_price_risk(alp, beta[count])
+    #     to_store = vcat(to_store, [alp beta[count] risk obj])
+    # end
 end
 
-CSV.write("outputs/step_1_4_1price_alphas.csv", Tables.table(to_store))
+CSV.write("outputs/step_1_4_1_linearscale.csv", Tables.table(to_store))
 
 
 #Put the values of interest in a CSV
