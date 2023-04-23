@@ -1,5 +1,6 @@
 # Step 1.2
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
+include("Step1_4_1price_for_1_5.jl")
 
 pwd()
 cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2")
@@ -20,14 +21,15 @@ system = system_raw[:, scenarioOrdered]
 price_Bal = zeros(24,600)
 
 
+run_1_price_risk(p_real, price_DA, system)
+
 #Basic stuff for the model
 in_sample_scen = 200
 out_sample_scen = 400
 prob = 1/in_sample_scen
 P_nom = 150
-
-alpha = [0.8 0.9 0.95]
-beta = 0.1*collect(0:10)
+alpha = 0.9
+beta = 0.001
 vector = zeros(Float64, length(beta), 2)
 
 function run_1_price_risk(alpha, beta)

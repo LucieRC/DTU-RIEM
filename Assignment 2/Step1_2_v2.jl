@@ -6,9 +6,9 @@ cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
 #Import the parameters from the CSVs, please change the directory
-p_real_raw = CSV.read("inputs_wind.csv", DataFrame, delim=",")
-price_raw = CSV.read("inputs_price.csv", DataFrame, delim=",")
-system_raw = CSV.read("inputs_system.csv", DataFrame, delim=",")
+p_real_raw = CSV.read("inputs/inputs_wind.csv", DataFrame, delim=",")
+price_raw = CSV.read("inputs/inputs_price.csv", DataFrame, delim=",")
+system_raw = CSV.read("inputs/inputs_system.csv", DataFrame, delim=",")
 
 #Re-order the parameters so the scenarios are random
 Random.seed!(69)
