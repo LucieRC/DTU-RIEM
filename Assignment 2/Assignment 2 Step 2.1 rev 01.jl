@@ -3,27 +3,23 @@ using Pkg, Gurobi, JuMP, DataFrames, Cbc, CSV, DataFrames, Plots
 
 model_step_2_1 = Model(Gurobi.Optimizer)
 
+cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2")
 
 # Demand 
-load_location = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
+load_location = CSV.read("inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
 # Transmission lines
-transmission_lines = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2transmission_lines_with_susceptance.csv", DataFrame, delim=",")
+transmission_lines = CSV.read("inputs/2transmission_lines_with_susceptance.csv", DataFrame, delim=",")
 # Generation units
-generating_units_details = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2generating_units_without_units.csv", DataFrame)
+generating_units_details = CSV.read("inputs/2generating_units_without_units.csv", DataFrame)
 # Suppliers
-suppliers_nodes_max_gen = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
+suppliers_nodes_max_gen = CSV.read("inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
 
 ## Sets and parameters
 
 nb_demands = 4
 nb_generators = 8
 
-D_price = [26.5 24.7 23.1 22.5]
-D_quantity = [200 400 300 250]
-
-#wind farm output is 75% nominal capacity
-generator_capacities = [155 100 155 197 337.5 350 210 80]
-generator_costs = [15.2 23.4 15.2 19.1 0 5 20.1 24.7]
+bid_price = [26.5 24.7 23.1 22.5]
 
 #nb_hours = 24
 nb_nodes = 6
@@ -37,13 +33,10 @@ nodes = collect(nodes_scale)
 transmission_lines_scale = 1:nb_transmission_lines
 transmissions = collect(transmission_lines_scale)
 
-offer_price_suppliers = vec(generator_costs) #generator_costs 8-element vector - bid prices of generators
-nodes_gen_units = generating_units_details[:,"Node"] #8-element vector (node where unit is located in total there are 6 nodes and 8 gen units) 
-max_power_suppliers = vec(generator_capacities) #8-element vector quantities offered by the 8 suppliers
-
-offer_price_demads = vec(D_price) #4-elenebt vector of demand bids
-max_load_demands = vec(D_quantity) #4-element vector of demand loads
-nodes_load_demands = load_location[:,"Node"] #4-element vector of nodes where demands are located
+offer_price_suppliers = suppliers_nodes_max_gen[:,"Offer_price"]    #generator_costs 8-element vector - bid prices of generators
+nodes_gen_units = generating_units_details[:,"Node"]                #8-element vector (node where unit is located in total there are 6 nodes and 8 gen units) 
+max_power_suppliers = suppliers_nodes_max_gen[:,"P_max_i"]          #8-element vector quantities offered by the 8 suppliers
+nodes_load_demands = load_location[:,"Node"]                        #4-element vector of nodes where demands are located
 
 function get_the_connected_t_lines(node)
     """
@@ -140,10 +133,13 @@ end
 
 optimize!(model_step_2_1)
 
-node_1 = dual.(cst_nodes)[1]
+
+
+node_1 = dual.(cst_nodes)[1]    #MCP at node 1
 node_2 = dual.(cst_nodes)[2]
 node_3 = dual.(cst_nodes)[3]
 node_4 = dual.(cst_nodes)[4]
 node_5 = dual.(cst_nodes)[5]
 node_6 = dual.(cst_nodes)[6]
 
+sum(value.(power_suppliers))
