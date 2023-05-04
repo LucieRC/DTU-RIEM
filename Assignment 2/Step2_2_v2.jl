@@ -107,7 +107,8 @@ D_max = [200 400 300 250]
 # MODEL
 model = Model(Gurobi.Optimizer)
 
-@variable(model, alpha_offer[i in 1:4] >= 0)
+@variable(model, alpha_offer_i[i in 1:4] >= 0)
+# @variable(model, alpha_offer_j[j in 1:4] >= 0)
 @variable(model, d[k in 1:4])
 @variable(model, p_i[i in 1:4])
 @variable(model, p_j[i in 1:4])
@@ -137,7 +138,7 @@ model = Model(Gurobi.Optimizer)
 
 @objective(model, Max,  - sum(p_i[i]*C_i[i] for i in 1:4)  
                         + sum(alpha_bid[k]*d[k] for k in 1:4)   
-                        - sum(alpha_offer[j]*p_j[j] for j in 1:4)
+                        - sum(C_j[j]*p_j[j] for j in 1:4)
                         - sum(mu_up_k[k]*D_max[k] for k in 1:4)     
                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m)*1000 for n in 1:6 for m in get_connected_nodes(n)))
@@ -148,7 +149,7 @@ model = Model(Gurobi.Optimizer)
 
 
 @constraint(model, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
-@constraint(model, opti_cond2[i in 1:4], C_i[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
+@constraint(model, opti_cond2[i in 1:4], alpha_offer_i[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
 @constraint(model, opti_cond3[j in 1:4], C_j[j] + mu_up_j[j] - mu_down_j[j] - lambda[non_strategic_to_nodes[[j+4]]] == 0)
 
 for n in 1:6
@@ -195,6 +196,8 @@ for n in 1:6, m in get_connected_nodes(n)
     @constraint(model, eta_up_n_m[n,m] <= (1-psi_8[n,m]*M))
 end 
 
+# model.Params.MIPFocus = 1 
+# model.setParam('MIPFocus', 1)
 
 optimize!(model)
 
