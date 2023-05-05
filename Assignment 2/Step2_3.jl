@@ -7,13 +7,13 @@ using Pkg, Gurobi, JuMP, DataFrames, Cbc, CSV, DataFrames, Plots
 
 # INPUTS
 # Demand 
-load_location = CSV.read("inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
+data_demand = CSV.read("inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
 # Transmission lines
-transmission_lines = CSV.read("inputs/2transmission_lines_with_susceptance.csv", DataFrame, delim=",")
-# Generation units
-generating_units_details = CSV.read("inputs/2generating_units_without_units.csv", DataFrame)
-# Suppliers
-suppliers_nodes_max_gen = CSV.read("inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
+data_tlines = CSV.read("inputs/2transmission_lines_with_susceptance.csv", DataFrame, delim=",")
+# Generators
+data_generators = CSV.read("inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
+# Generators details
+data_generators_details = CSV.read("inputs/2generating_units_without_units.csv", DataFrame)
 
 
 
@@ -24,14 +24,14 @@ function get_the_connected_t_lines(node)
     inputs: node of interest
     returns: smaller/bigger nodes t lines connected to it
     """
-    smaller_nodes_t_lines = transmission_lines[transmission_lines[:,"To"].==node, "Idx"]
-    bigger_nodes_t_lines = transmission_lines[transmission_lines[:,"From"].==node, "Idx"]
+    smaller_nodes_t_lines = data_tlines[data_tlines[:,"To"].==node, "Idx"]
+    bigger_nodes_t_lines = data_tlines[data_tlines[:,"From"].==node, "Idx"]
     return(smaller_nodes_t_lines, bigger_nodes_t_lines)
 end
 
 function get_connected_nodes(node)
-    connected_nodes = transmission_lines[transmission_lines[:,"To"].==node, "From"]
-    connected_nodes = vcat(connected_nodes,transmission_lines[transmission_lines[:,"From"].==node, "To"])
+    connected_nodes = data_tlines[data_tlines[:,"To"].==node, "From"]
+    connected_nodes = vcat(connected_nodes,data_tlines[data_tlines[:,"From"].==node, "To"])
     return(connected_nodes)
 end
 
@@ -39,11 +39,11 @@ function get_susceptance_line(node_n,node_m)
     #We have to try and grab one side or the other
     sus_list = []
     try
-        sus_list = append!(sus_list, transmission_lines[transmission_lines[:,"From"].==node_n,:][transmission_lines[transmission_lines[:,"From"].==node_n,:][:,"To"].==node_m,:].Susceptance[1])
+        sus_list = append!(sus_list, data_tlines[data_tlines[:,"From"].==node_n,:][data_tlines[data_tlines[:,"From"].==node_n,:][:,"To"].==node_m,:].Susceptance[1])
     catch
     end
     try
-        sus_list = append!(sus_list, transmission_lines[transmission_lines[:,"From"].==node_m,:][transmission_lines[transmission_lines[:,"From"].==node_m,:][:,"To"].==node_n,:].Susceptance[1]) 
+        sus_list = append!(sus_list, data_tlines[data_tlines[:,"From"].==node_m,:][data_tlines[data_tlines[:,"From"].==node_m,:][:,"To"].==node_n,:].Susceptance[1]) 
     catch
     end
     return(sus_list[1])
@@ -52,22 +52,22 @@ end
 function get_capacity_line(node_n,node_m)
     capa_list = []
     try
-        capa_list = append!(capa_list, transmission_lines[transmission_lines[:,"From"].==node_n,:][transmission_lines[transmission_lines[:,"From"].==node_n,:][:,"To"].==node_m,:].Capacity[1])
+        capa_list = append!(capa_list, data_tlines[data_tlines[:,"From"].==node_n,:][data_tlines[data_tlines[:,"From"].==node_n,:][:,"To"].==node_m,:].Capacity[1])
     catch
     end
     try
-        capa_list = append!(capa_list, transmission_lines[transmission_lines[:,"From"].==node_m,:][transmission_lines[transmission_lines[:,"From"].==node_m,:][:,"To"].==node_n,:].Capacity[1])
+        capa_list = append!(capa_list, data_tlines[data_tlines[:,"From"].==node_m,:][data_tlines[data_tlines[:,"From"].==node_m,:][:,"To"].==node_n,:].Capacity[1])
     catch
     end    
     return(capa_list[1])
 end
 
 function get_description_node(node)
-    strategic_supply = suppliers_nodes_max_gen[suppliers_nodes_max_gen[:,"Strategic"].== true, :]
-    non_strategic_supply = suppliers_nodes_max_gen[suppliers_nodes_max_gen[:,"Strategic"].== false, :]
+    strategic_supply = data_generators[data_generators[:,"Strategic"].== true, :]
+    non_strategic_supply = data_generators[data_generators[:,"Strategic"].== false, :]
     connected_strategic = strategic_supply[strategic_supply[:,"Node"].==node, "Unit"]
     connected_non_strategic = non_strategic_supply[non_strategic_supply[:,"Node"].==node, "Unit"]
-    connected_demands = load_location[load_location[:,"Node"].==node,"Load"] # Int64[] if none
+    connected_demands = data_demand[data_demand[:,"Node"].==node,"Load"] # Int64[] if none
     connected_smaller_nodes_t_lines, connected_bigger_nodes_t_lines = get_the_connected_t_lines(node)
     return(connected_strategic, connected_non_strategic, connected_demands, connected_smaller_nodes_t_lines, connected_bigger_nodes_t_lines)
 end
@@ -96,7 +96,7 @@ demands_to_nodes = Dict(value => key for (key, value) in connected_demands)
 
 
 # SETS AND PARAMETERS
-M = [4000, 1970, 3500, 20000]
+M = [4000, 150, 3500, 20000]
 P_max_k = [200 400 300 250]
 P_max_i = [155 100 155 197]
 P_max_j = [337.5 350 210 80]
@@ -109,8 +109,8 @@ D_max = [200 400 300 250]
 # MODEL
 model = Model(Gurobi.Optimizer)
 
-@variable(model, alpha_offer[i in 1:4] >= 0)
-# @variable(model, alpha_offer_j[j in 1:4] >= 0)
+@variable(model, alpha_offer_i[i in 1:4] >= 0)
+@variable(model, alpha_offer_j[j in 1:4] >= 0)
 @variable(model, d[k in 1:4])
 @variable(model, p_i[i in 1:4])
 @variable(model, p_j[i in 1:4])
@@ -151,15 +151,15 @@ model = Model(Gurobi.Optimizer)
 
 
 @constraint(model, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
-@constraint(model, opti_cond2[i in 1:4], alpha_offer[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
+@constraint(model, opti_cond2[i in 1:4], alpha_offer_i[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
 @constraint(model, opti_cond3[j in 1:4], C_j[j] + mu_up_j[j] - mu_down_j[j] - lambda[non_strategic_to_nodes[[j+4]]] == 0)
 
 for n in 1:6
     m_list = get_connected_nodes(n)
-    @constraint(model, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] + eta_down_n_m[n,m]) for m in m_list) + gamma == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
+    @constraint(model, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] + eta_down_n_m[n,m])  for m in m_list) + gamma == 0) #- eta_up_n_m[m,n]  - eta_down_n_m[m,n])
 end 
 
-@constraint(model, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n]) + sum(50*(theta[n] - theta[m]) for m in get_connected_nodes(n)) - sum(50*(theta[m] - theta[n]) for m in get_connected_nodes(n)) - sum(p_i[i] for i in connected_strategic[n]) - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
+@constraint(model, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n]) + sum((theta[n] - theta[m]) for m in get_connected_nodes(n)) - sum((theta[m] - theta[n]) for m in get_connected_nodes(n)) - sum(p_i[i] for i in connected_strategic[n]) - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
 @constraint(model, equality_cst2, theta[1] == 0)
 
 @constraint(model, compl_cst1_1[k in 1:4], 0 <= (P_max_k[k] - d[k]))
@@ -187,18 +187,18 @@ end
 @constraint(model, compl_cst6_4[j in 1:4], mu_down_j[j] <= (1-psi_6[j])*M[3])
 
 for n in 1:6, m in get_connected_nodes(n)
-    @constraint(model, 0 <= (get_capacity_line(n,m) + 50*(theta[n] - theta[m])))
-    @constraint(model, (get_capacity_line(n,m) + 50*(theta[n] - theta[m])) <= psi_7[n,m]*M[4])
+    @constraint(model, 0 <= (get_capacity_line(n,m) + (theta[n] - theta[m])))
+    @constraint(model, (get_capacity_line(n,m) + (theta[n] - theta[m])) <= psi_7[n,m]*M[4])
     @constraint(model, eta_down_n_m[n,m] <= (1-psi_7[n,m])*M[4])
 end 
 
 for n in 1:6, m in get_connected_nodes(n)
-    @constraint(model, 0 <= (get_capacity_line(n,m) - 50*(theta[n] - theta[m])))
-    @constraint(model, (get_capacity_line(n,m) - 50*(theta[n] - theta[m])) <= psi_8[n,m]*M[4])
+    @constraint(model, 0 <= (get_capacity_line(n,m) - (theta[n] - theta[m])))
+    @constraint(model, (get_capacity_line(n,m) - (theta[n] - theta[m])) <= psi_8[n,m]*M[4])
     @constraint(model, eta_up_n_m[n,m] <= (1-psi_8[n,m])*M[4])
 end 
 
 
 optimize!(model)
 
-# value.(alpha_offer[1:4])
+# value.(alpha_offer_i[1:4])
