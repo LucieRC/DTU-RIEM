@@ -97,7 +97,7 @@ demands_to_nodes = Dict(value => key for (key, value) in connected_demands)
 
 
 # SETS AND PARAMETERS
-M = [4000, 150, 3500, 20000]
+M = [500, 154, 500, 10000]
 P_max_k = data_demand[:,"Quantity"]
 P_max_i = data_generators[1:4,"P_max_i"]
 P_max_j = data_generators[5:8,"P_max_i"]

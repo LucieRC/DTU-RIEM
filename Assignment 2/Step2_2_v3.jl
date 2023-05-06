@@ -1,17 +1,15 @@
+
 # IMPORTS
 using Pkg, Gurobi, JuMP, DataFrames, Cbc, CSV, DataFrames, Plots
-#cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2")
+cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2")
 
-include("Step2_2_v3.jl")
-optimize!(m2_2)
-power_flow_2_4 = value.(get_susceptance_line(2,4)*(theta[2] - theta[4]))
-power_flow_3_6 = value.(get_susceptance_line(3,6)*(theta[3] - theta[6]))
+#m2_2.params.NonConvex = 2
 
 # INPUTS
 # Demand 
 data_demand = CSV.read("inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
 # Transmission lines
-data_tlines = CSV.read("inputs/step2_3_data_tlines.csv", DataFrame, delim=",")
+data_tlines = CSV.read("inputs/step2_2_data_tlines.csv", DataFrame, delim=",")
 # Generators
 data_generators = CSV.read("inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
 # Generators details
@@ -108,104 +106,108 @@ alpha_bid = data_demand[:,"Bid_price"]
 D_max = data_demand[:,"Quantity"]
 
 
-# m2_3
-m2_3 = Model(Gurobi.Optimizer)
+# m2_2
+m2_2 = Model(Gurobi.Optimizer)
 
-@variable(m2_3, alpha_offer[i in 1:4] >= 0)
-# @variable(m2_3, alpha_offer_j[j in 1:4] >= 0)
-@variable(m2_3, d[k in 1:4])
-@variable(m2_3, p_i[i in 1:4])
-@variable(m2_3, p_j[i in 1:4])
+@variable(m2_2, alpha_offer[i in 1:4] >= 0)
+# @variable(m2_2, alpha_offer_j[j in 1:4] >= 0)
+@variable(m2_2, d[k in 1:4])
+@variable(m2_2, p_i[i in 1:4])
+@variable(m2_2, p_j[i in 1:4])
 
-@variable(m2_3, mu_down_k[k in 1:4] >= 0)
-@variable(m2_3, mu_up_k[k in 1:4] >= 0)
-@variable(m2_3, mu_down_i[i in 1:4] >= 0)
-@variable(m2_3, mu_up_i[i in 1:4] >= 0)
-@variable(m2_3, mu_down_j[j in 1:4] >= 0)
-@variable(m2_3, mu_up_j[j in 1:4] >= 0)
+@variable(m2_2, mu_down_k[k in 1:4] >= 0)
+@variable(m2_2, mu_up_k[k in 1:4] >= 0)
+@variable(m2_2, mu_down_i[i in 1:4] >= 0)
+@variable(m2_2, mu_up_i[i in 1:4] >= 0)
+@variable(m2_2, mu_down_j[j in 1:4] >= 0)
+@variable(m2_2, mu_up_j[j in 1:4] >= 0)
 
-@variable(m2_3, eta_down_n_m[n in 1:6, m in 1:6] >= 0)
-@variable(m2_3, eta_up_n_m[n in 1:6, m in 1:6] >= 0)
+@variable(m2_2, eta_down_n_m[n in 1:6, m in 1:6] >= 0)
+@variable(m2_2, eta_up_n_m[n in 1:6, m in 1:6] >= 0)
 
-@variable(m2_3, lambda[n in 1:6])
-@variable(m2_3, theta[n in 1:6])
-@variable(m2_3, gamma)
+@variable(m2_2, lambda[n in 1:6])
+@variable(m2_2, theta[n in 1:6])
+@variable(m2_2, gamma)
 
-@variable(m2_3, psi_1[k in 1:4], Bin) 
-@variable(m2_3, psi_2[k in 1:4], Bin) 
-@variable(m2_3, psi_3[i in 1:4], Bin) 
-@variable(m2_3, psi_4[i in 1:4], Bin) 
-@variable(m2_3, psi_5[j in 1:4], Bin) 
-@variable(m2_3, psi_6[j in 1:4], Bin) 
-@variable(m2_3, psi_7[n in 1:6, m in 1:6], Bin) 
-@variable(m2_3, psi_8[n in 1:6, m in 1:6], Bin) 
+@variable(m2_2, psi_1[k in 1:4], Bin) 
+@variable(m2_2, psi_2[k in 1:4], Bin) 
+@variable(m2_2, psi_3[i in 1:4], Bin) 
+@variable(m2_2, psi_4[i in 1:4], Bin) 
+@variable(m2_2, psi_5[j in 1:4], Bin) 
+@variable(m2_2, psi_6[j in 1:4], Bin) 
+@variable(m2_2, psi_7[n in 1:6, m in 1:6], Bin) 
+@variable(m2_2, psi_8[n in 1:6, m in 1:6], Bin) 
 
-@objective(m2_3, Max,  - sum(p_i[i]*C_i[i] for i in 1:4)  
+@objective(m2_2, Max,  - sum(p_i[i]*C_i[i] for i in 1:4)  
                         + sum(alpha_bid[k]*d[k] for k in 1:4)   
                         - sum(C_j[j]*p_j[j] for j in 1:4)
                         - sum(mu_up_k[k]*D_max[k] for k in 1:4)     
                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m) for n in 1:6 for m in get_connected_nodes(n)))
-# @objective(m2_3, Max, sum(mu_up_k[k]*D_max[k] for k in 1:4)     
+# @objective(m2_2, Max, sum(mu_up_k[k]*D_max[k] for k in 1:4)     
 #                         - sum(mu_up_i[i]*P_max_i[i] for i in 1:4)
 #                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
 #                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m)*1000 for n in 1:6 for m in get_connected_nodes(n)))
 
 
-@constraint(m2_3, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
-@constraint(m2_3, opti_cond2[i in 1:4], alpha_offer[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
-@constraint(m2_3, opti_cond3[j in 1:4], C_j[j] + mu_up_j[j] - mu_down_j[j] - lambda[non_strategic_to_nodes[[j+4]]] == 0)
+@constraint(m2_2, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
+@constraint(m2_2, opti_cond2[i in 1:4], alpha_offer[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
+@constraint(m2_2, opti_cond3[j in 1:4], C_j[j] + mu_up_j[j] - mu_down_j[j] - lambda[non_strategic_to_nodes[[j+4]]] == 0)
 
 for n in 1:6
     m_list = get_connected_nodes(n)
-    @constraint(m2_3, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] + eta_down_n_m[n,m]) for m in m_list) + gamma == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
+    @constraint(m2_2, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] + eta_down_n_m[n,m]) for m in m_list) + gamma == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
 end 
 
-@constraint(m2_3, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n]) + sum(get_susceptance_line(n,m)*(theta[n] - theta[m]) for m in get_connected_nodes(n)) - sum(get_susceptance_line(n,m)*(theta[m] - theta[n]) for m in get_connected_nodes(n)) - sum(p_i[i] for i in connected_strategic[n]) - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
-@constraint(m2_3, equality_cst2, theta[1] == 0)
+@constraint(m2_2, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n]) + sum(get_susceptance_line(n,m)*(theta[n] - theta[m]) for m in get_connected_nodes(n)) - sum(get_susceptance_line(n,m)*(theta[m] - theta[n]) for m in get_connected_nodes(n)) - sum(p_i[i] for i in connected_strategic[n]) - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
+@constraint(m2_2, equality_cst2, theta[1] == 0)
 
-@constraint(m2_3, compl_cst1_1[k in 1:4], 0 <= (P_max_k[k] - d[k]))
-@constraint(m2_3, compl_cst1_3[k in 1:4], (P_max_k[k] - d[k]) <= psi_1[k]*M[1])
-@constraint(m2_3, compl_cst1_4[k in 1:4], mu_up_k[k] <= (1-psi_1[k])*M[1])
+@constraint(m2_2, compl_cst1_1[k in 1:4], 0 <= (P_max_k[k] - d[k]))
+@constraint(m2_2, compl_cst1_3[k in 1:4], (P_max_k[k] - d[k]) <= psi_1[k]*M[1])
+@constraint(m2_2, compl_cst1_4[k in 1:4], mu_up_k[k] <= (1-psi_1[k])*M[1])
 
-@constraint(m2_3, compl_cst2_1[k in 1:4], 0 <= d[k])
-@constraint(m2_3, compl_cst2_3[k in 1:4], d[k] <= psi_2[k]*M[1])
-@constraint(m2_3, compl_cst2_4[k in 1:4], mu_down_k[k] <= (1-psi_2[k])*M[1])
+@constraint(m2_2, compl_cst2_1[k in 1:4], 0 <= d[k])
+@constraint(m2_2, compl_cst2_3[k in 1:4], d[k] <= psi_2[k]*M[1])
+@constraint(m2_2, compl_cst2_4[k in 1:4], mu_down_k[k] <= (1-psi_2[k])*M[1])
 
-@constraint(m2_3, compl_cst3_1[i in 1:4], 0 <= (P_max_i[i] - p_i[i]))
-@constraint(m2_3, compl_cst3_3[i in 1:4], (P_max_i[i] - p_i[i]) <= psi_3[i]*M[2])
-@constraint(m2_3, compl_cst3_4[i in 1:4], mu_up_i[i] <= (1-psi_3[i])*M[2])
+@constraint(m2_2, compl_cst3_1[i in 1:4], 0 <= (P_max_i[i] - p_i[i]))
+@constraint(m2_2, compl_cst3_3[i in 1:4], (P_max_i[i] - p_i[i]) <= psi_3[i]*M[2])
+@constraint(m2_2, compl_cst3_4[i in 1:4], mu_up_i[i] <= (1-psi_3[i])*M[2])
 
-@constraint(m2_3, compl_cst4_1[i in 1:4], 0 <= p_i[i])
-@constraint(m2_3, compl_cst4_3[i in 1:4], p_i[i] <= psi_4[i]*M[2])
-@constraint(m2_3, compl_cst4_4[i in 1:4], mu_down_i[i] <= (1-psi_4[i])*M[2])
+@constraint(m2_2, compl_cst4_1[i in 1:4], 0 <= p_i[i])
+@constraint(m2_2, compl_cst4_3[i in 1:4], p_i[i] <= psi_4[i]*M[2])
+@constraint(m2_2, compl_cst4_4[i in 1:4], mu_down_i[i] <= (1-psi_4[i])*M[2])
 
-@constraint(m2_3, compl_cst5_1[j in 1:4], 0 <= (P_max_j[j]-p_j[j]))
-@constraint(m2_3, compl_cst5_3[j in 1:4], (P_max_j[j]-p_j[j]) <= psi_5[j]*M[3])
-@constraint(m2_3, compl_cst5_4[j in 1:4], mu_up_j[j] <= (1-psi_5[j])*M[3])
+@constraint(m2_2, compl_cst5_1[j in 1:4], 0 <= (P_max_j[j]-p_j[j]))
+@constraint(m2_2, compl_cst5_3[j in 1:4], (P_max_j[j]-p_j[j]) <= psi_5[j]*M[3])
+@constraint(m2_2, compl_cst5_4[j in 1:4], mu_up_j[j] <= (1-psi_5[j])*M[3])
 
-@constraint(m2_3, compl_cst6_1[j in 1:4], 0 <= p_j[j])
-@constraint(m2_3, compl_cst6_3[j in 1:4], p_j[j] <= psi_6[j]*M[3])
-@constraint(m2_3, compl_cst6_4[j in 1:4], mu_down_j[j] <= (1-psi_6[j])*M[3])
+@constraint(m2_2, compl_cst6_1[j in 1:4], 0 <= p_j[j])
+@constraint(m2_2, compl_cst6_3[j in 1:4], p_j[j] <= psi_6[j]*M[3])
+@constraint(m2_2, compl_cst6_4[j in 1:4], mu_down_j[j] <= (1-psi_6[j])*M[3])
 
 for n in 1:6, m in get_connected_nodes(n)
-    @constraint(m2_3, 0 <= (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n] - theta[m])))
-    @constraint(m2_3, (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n] - theta[m])) <= psi_7[n,m]*M[4])
-    @constraint(m2_3, eta_down_n_m[n,m] <= (1-psi_7[n,m])*M[4])
+    @constraint(m2_2, 0 <= (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n] - theta[m])))
+    @constraint(m2_2, (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n] - theta[m])) <= psi_7[n,m]*M[4])
+    @constraint(m2_2, eta_down_n_m[n,m] <= (1-psi_7[n,m])*M[4])
 end 
 
 for n in 1:6, m in get_connected_nodes(n)
-    @constraint(m2_3, 0 <= (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n] - theta[m])))
-    @constraint(m2_3, (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n] - theta[m])) <= psi_8[n,m]*M[4])
-    @constraint(m2_3, eta_up_n_m[n,m] <= (1-psi_8[n,m])*M[4])
+    @constraint(m2_2, 0 <= (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n] - theta[m])))
+    @constraint(m2_2, (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n] - theta[m])) <= psi_8[n,m]*M[4])
+    @constraint(m2_2, eta_up_n_m[n,m] <= (1-psi_8[n,m])*M[4])
 end 
 
-# @constraint(m2_3, fix_2_4_flow, get_susceptance_line(2,4)*(theta[2] - theta[4]) == power_flow_2_4)
-# @constraint(m2_3, fix_3_6_flow, get_susceptance_line(3,6)*(theta[3] - theta[6]) == power_flow_3_6)
 
-optimize!(m2_3)
+# optimize!(m2_2)
 
-# value.(alpha_offer_i[1:4])
+# value.(alpha_offer[1:4])
 
-MCP_node_hour = value.(reshape([lambda[n] for n in 1:6], 6, 1))
-CSV.write("outputs/step_2_3_MCP_node_hour.csv", Tables.table(MCP_node_hour))
+# power_flow_1_2 = value.(get_susceptance_line(1,2)*(theta[1] - theta[2]))
+# power_flow_1_3 = value.(get_susceptance_line(1,3)*(theta[1] - theta[3]))
+# power_flow_2_3 = value.(get_susceptance_line(2,3)*(theta[2] - theta[3]))
+# power_flow_2_4 = value.(get_susceptance_line(2,4)*(theta[2] - theta[4]))
+# power_flow_3_6 = value.(get_susceptance_line(3,6)*(theta[3] - theta[6]))
+# power_flow_4_5 = value.(get_susceptance_line(4,5)*(theta[4] - theta[5]))
+# power_flow_4_6 = value.(get_susceptance_line(4,6)*(theta[4] - theta[6]))
+# power_flow_5_6 = value.(get_susceptance_line(5,6)*(theta[5] - theta[6]))
