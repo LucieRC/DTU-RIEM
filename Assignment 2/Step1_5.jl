@@ -71,25 +71,25 @@ push!(DA_bal_revenues, [mean(in_DA_rev_step4_1p) mean(in_bal_rev_step4_1p) mean(
 push!(DA_bal_revenues, [mean(in_DA_rev_step4_2p) mean(in_bal_rev_step4_2p) mean(out_DA_rev_step4_2p) mean(out_bal_rev_step4_2p) DA_error_step4_2p bal_error_step4_2p])
 
 
-CSV.write("outputs/step_1_5_average_profits.csv", DA_bal_revenues)
+# CSV.write("outputs/step_1_5_average_profits.csv", DA_bal_revenues)
 
 
-data = vcat(fill("DA_step1", (1, 600)),
-            hcat(in_DA_rev_step1, out_DA_rev_step1),
-            fill("bal_step1", (1, 600)),
-            hcat(in_bal_rev_step1, out_bal_rev_step1),
-            fill("DA_step2", (1, 600)),
-            hcat(in_DA_rev_step2, out_bal_rev_step2),
-            fill("bal_step2", (1,600)),
-            hcat(in_bal_rev_step2, out_bal_rev_step2),
-            fill("DA_step4_1p", (1, 600)),
-            hcat(in_DA_rev_step4_1p, out_DA_rev_step4_1p),
-            fill("bal_step4_1p", (1, 600)),
-            hcat(in_bal_rev_step4_1p, out_bal_rev_step4_1p),
-            fill("DA_step4_2p", (1, 600)),
-            hcat(in_DA_rev_step4_2p, out_bal_rev_step4_2p),
-            fill("bal_step4_2p", (1,600)),
-            hcat(in_bal_rev_step4_2p, out_bal_rev_step4_2p),
-            )
+# data = vcat(fill("DA_step1", (1, 600)),
+#             hcat(in_DA_rev_step1, out_DA_rev_step1),
+#             fill("bal_step1", (1, 600)),
+#             hcat(in_bal_rev_step1, out_bal_rev_step1),
+#             fill("DA_step2", (1, 600)),
+#             hcat(in_DA_rev_step2, out_bal_rev_step2),
+#             fill("bal_step2", (1,600)),
+#             hcat(in_bal_rev_step2, out_bal_rev_step2),
+#             fill("DA_step4_1p", (1, 600)),
+#             hcat(in_DA_rev_step4_1p, out_DA_rev_step4_1p),
+#             fill("bal_step4_1p", (1, 600)),
+#             hcat(in_bal_rev_step4_1p, out_bal_rev_step4_1p),
+#             fill("DA_step4_2p", (1, 600)),
+#             hcat(in_DA_rev_step4_2p, out_bal_rev_step4_2p),
+#             fill("bal_step4_2p", (1,600)),
+#             hcat(in_bal_rev_step4_2p, out_bal_rev_step4_2p),
+#             )
             
-CSV.write("outputs/step_1_5_scenario_details.csv", Tables.table(data))
+# CSV.write("outputs/step_1_5_scenario_details.csv", Tables.table(data))

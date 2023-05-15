@@ -73,7 +73,7 @@ for i in 1:10
     push!(DA_bal_revenues_step4_2p, [mean(in_DA_rev_step4_2p) mean(in_bal_rev_step4_2p) mean(out_DA_rev_step4_2p) mean(out_bal_rev_step4_2p) DA_error_step4_2p bal_error_step4_2p])
 end
 
-CSV.write("outputs/step_1_6_step1_avg_profits_200in_10repets.csv", DA_bal_revenues_step1)
-CSV.write("outputs/step_1_6_step2_avg_profits_200in_10repets.csv", DA_bal_revenues_step2)
-CSV.write("outputs/step_1_6_step4_1p_avg_profits_200in_10repets.csv", DA_bal_revenues_step4_1p)
-CSV.write("outputs/step_1_6_step4_2p_avg_profits_200in_10repets.csv", DA_bal_revenues_step4_2p)
+# CSV.write("outputs/step_1_6_step1_avg_profits_200in_10repets.csv", DA_bal_revenues_step1)
+# CSV.write("outputs/step_1_6_step2_avg_profits_200in_10repets.csv", DA_bal_revenues_step2)
+# CSV.write("outputs/step_1_6_step4_1p_avg_profits_200in_10repets.csv", DA_bal_revenues_step4_1p)
+# CSV.write("outputs/step_1_6_step4_2p_avg_profits_200in_10repets.csv", DA_bal_revenues_step4_2p)

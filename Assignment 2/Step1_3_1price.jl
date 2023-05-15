@@ -1,5 +1,4 @@
 # Step 1.2
-
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
 #Import the parameters from the CSVs, please change the directory
@@ -63,10 +62,9 @@ print(to_store)
 for coef1 in 0.01*range(85,95)
     obj = sensitivity_analysis_2prices(coef1,coef2)
     to_store = vcat(to_store, [coef1 coef2 obj])
-    print(to_store)
-    # vector[count,:] = [risk, obj]
+    # print(to_store)
 end
-CSV.write("outputs/step_1_3_1price_coef1.csv", Tables.table(to_store))
+# CSV.write("outputs/step_1_3_1price_coef1.csv", Tables.table(to_store))
 
 # SECOND SENSITIVITY ANALYSIS
 coef1 = 0.9
@@ -75,7 +73,7 @@ print(to_store)
 for coef2 in 0.1*range(11,13,11)
     obj = sensitivity_analysis_2prices(coef1,coef2)
     to_store = vcat(to_store, [coef1 coef2 obj])
-    print(to_store)
-    # vector[count,:] = [risk, obj]
+    # print(to_store)
 end
-CSV.write("outputs/step_1_3_1price_coef2.csv", Tables.table(to_store))
+
+# CSV.write("outputs/step_1_3_1price_coef2.csv", Tables.table(to_store))

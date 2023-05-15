@@ -65,7 +65,7 @@ for coef1 in 0.01*range(85,95)
     print(to_store)
     # vector[count,:] = [risk, obj]
 end
-CSV.write("outputs/step_1_3_coef1.csv", Tables.table(to_store))
+# CSV.write("outputs/step_1_3_coef1.csv", Tables.table(to_store))
 
 # SECOND SENSITIVITY ANALYSIS
 coef1 = 0.9
@@ -77,4 +77,4 @@ for coef2 in 0.1*range(11,13,11)
     print(to_store)
     # vector[count,:] = [risk, obj]
 end
-CSV.write("outputs/step_1_3_coef2.csv", Tables.table(to_store))
+# CSV.write("outputs/step_1_3_coef2.csv", Tables.table(to_store))
