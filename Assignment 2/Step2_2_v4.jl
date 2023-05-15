@@ -96,13 +96,6 @@ demands_to_nodes = Dict(value => key for (key, value) in connected_demands)
 # SETS AND PARAMETERS
 # = [P_max_K, mu, P_max_i, mu, P_max_j, mu, line_capacity + theta, eta_down or eta_up]
 M = [500, 10, 250, 10, 400, 100, 5000, 10000]
-# P_max_k = [200 400 300 250]
-# P_max_i = [155 100 155 197]
-# P_max_j = [337.5 350 210 80]
-# C_i = [15.2 23.4 15.2 19.1]
-# C_j = [0 5 20.1 24.7]
-# alpha_bid = [26.5 24.7 23.1 22.5]
-# D_max = [200 400 300 250]
 P_max_k = data_demand[:,"Quantity"]
 P_max_i = data_generators[1:4,"P_max_i"]
 P_max_j = data_generators[5:8,"P_max_i"]
@@ -115,8 +108,7 @@ D_max = data_demand[:,"Quantity"]
 # MODEL
 model = Model(Gurobi.Optimizer)
 
-@variable(model, alpha_offer_i[i in 1:4] >= 0)
-@variable(model, alpha_offer_j[j in 1:4] >= 0)
+@variable(model, alpha_offer[i in 1:4] >= 0)
 @variable(model, d[k in 1:4])
 @variable(model, p_i[i in 1:4])
 @variable(model, p_j[i in 1:4])
@@ -152,13 +144,15 @@ model = Model(Gurobi.Optimizer)
                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m) for n in 1:6 for m in get_connected_nodes(n)))
 
 
+@constraint(model, min_offer_price[i in 1:4], alpha_offer[i] >= C_i[i])
+
 @constraint(model, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
-@constraint(model, opti_cond2[i in 1:4], alpha_offer_i[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
+@constraint(model, opti_cond2[i in 1:4], alpha_offer[i] + mu_up_i[i] - mu_down_i[i] - lambda[strategic_to_nodes[[i]]] == 0)
 @constraint(model, opti_cond3[j in 1:4], C_j[j] + mu_up_j[j] - mu_down_j[j] - lambda[non_strategic_to_nodes[[j+4]]] == 0)
 
 for n in 1:6
     m_list = get_connected_nodes(n)
-    @constraint(model, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] - eta_up_n_m[m,n] +eta_down_n_m[n,m] - eta_down_n_m[m,n]) for m in m_list) + gamma == 0)
+    @constraint(model, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] - eta_up_n_m[m,n] - eta_down_n_m[n,m] + eta_down_n_m[m,n]) for m in m_list) + gamma == 0)
 end 
 
 @constraint(model, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n]) + sum(50*(theta[n] - theta[m]) for m in get_connected_nodes(n)) - sum(50*(theta[m] - theta[n]) for m in get_connected_nodes(n)) - sum(p_i[i] for i in connected_strategic[n]) - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
@@ -216,3 +210,18 @@ optimize!(model)
 # println("mu_up_j = ", value.(mu_up_j))
 # println("mu_down_j = ", value.(mu_down_j))
 # println("eta_down_n_m = ", value.(eta_down_n_m))
+# Total profit:
+# value.(model.obj() - sum(p_i[i]*C_i[i] for i in 1:4))
+
+
+# total_profit = 0
+# for i in 1:4
+#     total_profit += value.(p_i[i]*(lambda[i]-C_i[i]))
+# end
+# total_profit
+
+# value.(alpha_offer)
+
+SW = value.(sum(alpha_bid[k]*d[k] for k in 1:4)
+        - sum(alpha_offer[i]*p_i[i] for i in 1:4)
+        -sum(C_j[j]*p_j[j] for j in 1:4))

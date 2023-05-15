@@ -100,7 +100,6 @@ demands_to_nodes = Dict(value => key for (key, value) in connected_demands)
 
 
 # SETS AND PARAMETERS
-# M = [500, 154, 500, 10000]
 M = [500, 10, 250, 10, 400, 100, 5000, 10000]
 P_max_k = data_demand[:,"Quantity"]
 P_max_i = data_generators[1:4,"P_max_i"]
@@ -116,9 +115,9 @@ m2_3 = Model(Gurobi.Optimizer)
 
 @variable(m2_3, alpha_offer[i in 1:4] >= 0)
 # @variable(m2_3, alpha_offer_j[j in 1:4] >= 0)
-@variable(m2_3, d[k in 1:4])
-@variable(m2_3, p_i[i in 1:4])
-@variable(m2_3, p_j[i in 1:4])
+@variable(m2_3, d[k in 1:4] >= 0)
+@variable(m2_3, p_i[i in 1:4] >= 0)
+@variable(m2_3, p_j[i in 1:4] >= 0)
 
 @variable(m2_3, mu_down_k[k in 1:4] >= 0)
 @variable(m2_3, mu_up_k[k in 1:4] >= 0)
@@ -149,10 +148,9 @@ m2_3 = Model(Gurobi.Optimizer)
                         - sum(mu_up_k[k]*D_max[k] for k in 1:4)     
                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m) for n in 1:6 for m in get_connected_nodes(n)))
-# @objective(m2_3, Max, sum(mu_up_k[k]*D_max[k] for k in 1:4)     
-#                         - sum(mu_up_i[i]*P_max_i[i] for i in 1:4)
-#                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
-#                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m)*1000 for n in 1:6 for m in get_connected_nodes(n)))
+
+
+@constraint(m2_3, min_offer_price[i in 1:4], alpha_offer[i] >= C_i[i])
 
 
 @constraint(m2_3, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
@@ -161,17 +159,26 @@ m2_3 = Model(Gurobi.Optimizer)
 
 for n in 1:6
     m_list = get_connected_nodes(n)
-    @constraint(m2_3, sum(get_susceptance_line(n,m)*(lambda[n] - lambda[m] + eta_up_n_m[n,m] + eta_down_n_m[n,m]) for m in m_list) + gamma == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
+    @constraint(m2_3, sum(get_susceptance_line(n,m)*(lambda[n] 
+                                            - lambda[m] 
+                                            + eta_up_n_m[n,m] 
+                                            - eta_down_n_m[n,m]
+                                            - eta_up_n_m[m,n] 
+                                            + eta_down_n_m[m,n]
+                                            ) for m in m_list) + gamma == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
 end 
 
-@constraint(m2_3, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n]) + sum(get_susceptance_line(n,m)*(theta[n] - theta[m]) for m in get_connected_nodes(n)) - sum(get_susceptance_line(n,m)*(theta[m] - theta[n]) for m in get_connected_nodes(n)) - sum(p_i[i] for i in connected_strategic[n]) - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
+@constraint(m2_3, equality_cst1[n in 1:6], sum(d[k] for k in connected_demands[n])  
+                                + sum(get_susceptance_line(n,m)*(theta[n] - theta[m]) for m in get_connected_nodes(n)) 
+                                - sum(get_susceptance_line(n,m)*(theta[m] - theta[n]) for m in get_connected_nodes(n)) 
+                                - sum(p_i[i] for i in connected_strategic[n]) 
+                                - sum(p_j[j] for j in connected_non_strategic[n].-4) == 0)
 @constraint(m2_3, equality_cst2, theta[1] == 0)
 
 @constraint(m2_3, compl_cst1_1[k in 1:4], 0 <= (P_max_k[k] - d[k]))
 @constraint(m2_3, compl_cst1_3[k in 1:4], (P_max_k[k] - d[k]) <= psi_1[k]*M[1])
 @constraint(m2_3, compl_cst1_4[k in 1:4], mu_up_k[k] <= (1-psi_1[k])*M[2])
 
-@constraint(m2_3, compl_cst2_1[k in 1:4], 0 <= d[k])
 @constraint(m2_3, compl_cst2_3[k in 1:4], d[k] <= psi_2[k]*M[1])
 @constraint(m2_3, compl_cst2_4[k in 1:4], mu_down_k[k] <= (1-psi_2[k])*M[2])
 
@@ -179,7 +186,6 @@ end
 @constraint(m2_3, compl_cst3_3[i in 1:4], (P_max_i[i] - p_i[i]) <= psi_3[i]*M[3])
 @constraint(m2_3, compl_cst3_4[i in 1:4], mu_up_i[i] <= (1-psi_3[i])*M[4])
 
-@constraint(m2_3, compl_cst4_1[i in 1:4], 0 <= p_i[i])
 @constraint(m2_3, compl_cst4_3[i in 1:4], p_i[i] <= psi_4[i]*M[3])
 @constraint(m2_3, compl_cst4_4[i in 1:4], mu_down_i[i] <= (1-psi_4[i])*M[4])
 
@@ -187,20 +193,19 @@ end
 @constraint(m2_3, compl_cst5_3[j in 1:4], (P_max_j[j]-p_j[j]) <= psi_5[j]*M[5])
 @constraint(m2_3, compl_cst5_4[j in 1:4], mu_up_j[j] <= (1-psi_5[j])*M[6])
 
-@constraint(m2_3, compl_cst6_1[j in 1:4], 0 <= p_j[j])
 @constraint(m2_3, compl_cst6_3[j in 1:4], p_j[j] <= psi_6[j]*M[5])
 @constraint(m2_3, compl_cst6_4[j in 1:4], mu_down_j[j] <= (1-psi_6[j])*M[6])
 
 for n in 1:6, m in get_connected_nodes(n)
     @constraint(m2_3, 0 <= (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n] - theta[m])))
     @constraint(m2_3, (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n] - theta[m])) <= psi_7[n,m]*M[7])
-    @constraint(m2_3, eta_down_n_m[n,m] <= (1-psi_7[n,m])*M[8])
+    @constraint(m2_3, eta_up_n_m[n,m] <= (1-psi_7[n,m])*M[8])
 end 
 
 for n in 1:6, m in get_connected_nodes(n)
     @constraint(m2_3, 0 <= (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n] - theta[m])))
     @constraint(m2_3, (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n] - theta[m])) <= psi_8[n,m]*M[7])
-    @constraint(m2_3, eta_up_n_m[n,m] <= (1-psi_8[n,m])*M[8])
+    @constraint(m2_3, eta_down_n_m[n,m] <= (1-psi_8[n,m])*M[8])
 end 
 
 # @constraint(m2_3, fix_2_4_flow, get_susceptance_line(2,4)*(theta[2] - theta[4]) == power_flow_2_4)
@@ -229,3 +234,19 @@ optimize!(m2_3)
 # println("mu_up_j = ", value.(mu_up_j))
 # println("mu_down_j = ", value.(mu_down_j))
 # println("eta_down_n_m = ", value.(eta_down_n_m))
+
+
+# sum(p_i[i]*(lambda[n]) for i in 1:4)
+
+
+# value.(p_i)
+# value.([lambda[strategic_to_nodes[[i]]] for i in 1:4])
+# value.(alpha_offer)
+
+total_profit = 0
+for i in 1:4
+    total_profit += value.(p_i[i]*(lambda[i]-C_i[i]))
+end
+total_profit
+
+value.(alpha_offer)

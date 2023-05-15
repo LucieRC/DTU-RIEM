@@ -112,7 +112,7 @@ model_step_2_1 = Model(Gurobi.Optimizer)
 
 ## Objective
 @objective(model_step_2_1, Max, sum(bid_price[d]*load_demands[d] for d in demands)
-- sum(offer_price_suppliers[s]*power_suppliers[s] for s in suppliers))
+                - sum(offer_price_suppliers[s]*power_suppliers[s] for s in suppliers))
 
 # Constraints
 @constraint(model_step_2_1, cst_demands[d in demands], load_demands[d] <= load_location[d , "Quantity"])

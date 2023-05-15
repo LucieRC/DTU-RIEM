@@ -122,9 +122,9 @@ m2_5 = Model(Gurobi.Optimizer)
 
 # VARIABLES
 @variable(m2_5, alpha_offer[i in 1:4, t in 1:24] >= 0)
-@variable(m2_5, d[k in 1:4, t in 1:24])
-@variable(m2_5, p_i[i in 1:4, t in 1:24])
-@variable(m2_5, p_j[j in 1:4, t in 1:24])
+@variable(m2_5, d[k in 1:4, t in 1:24] >= 0)
+@variable(m2_5, p_i[i in 1:4, t in 1:24] >= 0)
+@variable(m2_5, p_j[j in 1:4, t in 1:24] >= 0)
 
 @variable(m2_5, mu_down_k[k in 1:4, t in 1:24] >= 0)
 @variable(m2_5, mu_up_k[k in 1:4, t in 1:24] >= 0)
@@ -160,23 +160,27 @@ m2_5 = Model(Gurobi.Optimizer)
 
 
 # CONSTRAINTS
+# @constraint(m2_5, min_offer_price[i in 1:4, t in 1:24], alpha_offer[i,t] >= C_i[i])
 @constraint(m2_5, opti_cond1[k in 1:4, t in 1:24], -alpha_bid[k,t] + mu_up_k[k,t] - mu_down_k[k,t] + lambda[demands_to_nodes[[k]],t] == 0)
-@constraint(m2_5, opti_cond2[i in 1:4, t in 1:24], alpha_offer[i,t] + mu_up_i[i,t] - mu_down_i[i] - lambda[strategic_to_nodes[[i]],t] == 0)
+@constraint(m2_5, opti_cond2[i in 1:4, t in 1:24], alpha_offer[i,t] + mu_up_i[i,t] - mu_down_i[i,t] - lambda[strategic_to_nodes[[i]],t] == 0)
 @constraint(m2_5, opti_cond3[j in 1:4, t in 1:24], C_j[j] + mu_up_j[j,t] - mu_down_j[j,t] - lambda[non_strategic_to_nodes[[j+4]],t] == 0)
 
 for t in 1:24, n in 1:6
     m_list = get_connected_nodes(n)
-    @constraint(m2_5, sum(get_susceptance_line(n,m)*(lambda[n,t] - lambda[m,t] + eta_up_n_m[n,m,t] + eta_down_n_m[n,m,t]) for m in m_list) + gamma[t] == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
+    @constraint(m2_5, sum(get_susceptance_line(n,m)*(lambda[n,t] - lambda[m,t] + eta_up_n_m[n,m,t] - eta_down_n_m[n,m,t] - eta_up_n_m[m,n,t] + eta_down_n_m[m,n,t]) for m in m_list) + gamma[t] == 0) #- eta_up_n_m[m,n] - eta_down_n_m[m,n]
 end 
 
-@constraint(m2_5, equality_cst1[n in 1:6, t in 1:24], sum(d[k,t] for k in connected_demands[n]) + sum(get_susceptance_line(n,m)*(theta[n,t] - theta[m,t]) for m in get_connected_nodes(n)) - sum(get_susceptance_line(n,m)*(theta[m,t] - theta[n,t]) for m in get_connected_nodes(n)) - sum(p_i[i,t] for i in connected_strategic[n]) - sum(p_j[j,t] for j in connected_non_strategic[n].-4) == 0)
+@constraint(m2_5, equality_cst1[n in 1:6, t in 1:24], sum(d[k,t] for k in connected_demands[n])     
+                                        + sum(get_susceptance_line(n,m)*(theta[n,t] - theta[m,t]) for m in get_connected_nodes(n)) 
+                                        - sum(get_susceptance_line(n,m)*(theta[m,t] - theta[n,t]) for m in get_connected_nodes(n)) 
+                                        - sum(p_i[i,t] for i in connected_strategic[n]) 
+                                        - sum(p_j[j,t] for j in connected_non_strategic[n].-4) == 0)
 @constraint(m2_5, equality_cst2[t in 1:24], theta[1,t] == 0)
 
 @constraint(m2_5, compl_cst1_1[k in 1:4, t in 1:24], 0 <= (P_max_k_hourly[k,t] - d[k,t]))
 @constraint(m2_5, compl_cst1_3[k in 1:4, t in 1:24], (P_max_k_hourly[k,t] - d[k,t]) <= psi_1[k,t]*M[1])
 @constraint(m2_5, compl_cst1_4[k in 1:4, t in 1:24], mu_up_k[k,t] <= (1-psi_1[k,t])*M[2])
 
-@constraint(m2_5, compl_cst2_1[k in 1:4, t in 1:24], 0 <= d[k,t])
 @constraint(m2_5, compl_cst2_3[k in 1:4, t in 1:24], d[k,t] <= psi_2[k,t]*M[1])
 @constraint(m2_5, compl_cst2_4[k in 1:4, t in 1:24], mu_down_k[k,t] <= (1-psi_2[k,t])*M[2])
 
@@ -184,7 +188,6 @@ end
 @constraint(m2_5, compl_cst3_3[i in 1:4, t in 1:24], (P_max_i_hourly[i,t] - p_i[i,t]) <= psi_3[i,t]*M[3])
 @constraint(m2_5, compl_cst3_4[i in 1:4, t in 1:24], mu_up_i[i,t] <= (1-psi_3[i,t])*M[4])
 
-@constraint(m2_5, compl_cst4_1[i in 1:4, t in 1:24], 0 <= p_i[i,t])
 @constraint(m2_5, compl_cst4_3[i in 1:4, t in 1:24], p_i[i,t] <= psi_4[i,t]*M[3])
 @constraint(m2_5, compl_cst4_4[i in 1:4, t in 1:24], mu_down_i[i] <= (1-psi_4[i,t])*M[4])
 
@@ -192,20 +195,19 @@ end
 @constraint(m2_5, compl_cst5_3[j in 1:4, t in 1:24], (P_max_j_hourly[j,t]-p_j[j,t]) <= psi_5[j,t]*M[5])
 @constraint(m2_5, compl_cst5_4[j in 1:4, t in 1:24], mu_up_j[j,t] <= (1-psi_5[j,t])*M[6])
 
-@constraint(m2_5, compl_cst6_1[j in 1:4, t in 1:24], 0 <= p_j[j,t])
 @constraint(m2_5, compl_cst6_3[j in 1:4, t in 1:24], p_j[j,t] <= psi_6[j,t]*M[5])
 @constraint(m2_5, compl_cst6_4[j in 1:4, t in 1:24], mu_down_j[j,t] <= (1-psi_6[j,t])*M[6])
 
 for t in 1:24, n in 1:6, m in get_connected_nodes(n)
     @constraint(m2_5, 0 <= (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])))
     @constraint(m2_5, (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])) <= psi_7[n,m,t]*M[7])
-    @constraint(m2_5, eta_down_n_m[n,m,t] <= (1-psi_7[n,m,t])*M[8])
+    @constraint(m2_5, eta_up_n_m[n,m,t] <= (1-psi_7[n,m,t])*M[8])
 end 
 
 for t in 1:24, n in 1:6, m in get_connected_nodes(n)
     @constraint(m2_5, 0 <= (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])))
     @constraint(m2_5, (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])) <= psi_8[n,m,t]*M[7])
-    @constraint(m2_5, eta_up_n_m[n,m,t] <= (1-psi_8[n,m,t])*M[8])
+    @constraint(m2_5, eta_down_n_m[n,m,t] <= (1-psi_8[n,m,t])*M[8])
 end 
 
 @constraint(m2_5, ramp_strategic[i in 1:4, t in 2:24], p_i[i,t] - p_i[i,t-1] <= ramp_limits[i])
@@ -237,6 +239,11 @@ optimize!(m2_5)
 # savefig(plot_MCP,"step_2_5_MCP.png")
 
 
-# plot(1:24,value.(alpha_offer[:,:]),xlabel="Hour of the day",ylabel="Strategic offer price",legend=false)
+plot_strat_offer_price = plot(1:24,value.(alpha_offer[1,:]),xlabel="Hour of the day",ylabel="Strategic offer price",legend=false)
+savefig(plot_strat_offer_price,"outputs/step_2_5_strategic_offer_price.png")
+# plot(1:24,value.(lambda[1,:]),xlabel="Hour of the day",ylabel="Strategic offer price",legend=false)
 
 # Matrix(alpha_offer)
+
+value.(alpha_offer)
+value.(p_i)
