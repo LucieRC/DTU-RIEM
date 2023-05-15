@@ -1,8 +1,4 @@
 # Step 1.2
-
-pwd()
-cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2/")
-
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random, Statistics
 
 #Import the parameters from the CSVs, please change the directory
@@ -52,33 +48,31 @@ optimize!(model)
 
 
 
-
-
 #Put the values of interest in a CSV
-p_DA = value.(reshape(p_DA, 24, 1))
-bal_price = zeros(AffExpr,24,200)
-for t in 1:24, w in 1:200
-    bal_price[t,w] = compute_bal_part(t,w)
-end
-profit = [sum(price_DA[t,w]*p_DA[t] + compute_bal_part(t,w) for t in 1:24) for w in 1:in_sample_scen]'
+# p_DA = value.(reshape(p_DA, 24, 1))
+# bal_price = zeros(AffExpr,24,200)
+# for t in 1:24, w in 1:200
+#     bal_price[t,w] = compute_bal_part(t,w)
+# end
+# profit = [sum(price_DA[t,w]*p_DA[t] + compute_bal_part(t,w) for t in 1:24) for w in 1:in_sample_scen]'
 
-data = vcat(fill("p_DA", (1, 600)),
-            hcat(p_DA, zeros(24, 599)),
-            fill("DA_price", (1,600)),
-            Matrix(price_DA),
-            fill("bal_price",(1,600)),
-            hcat(value.(bal_price), zeros(24, 400)),
-            fill("delta", (1, 600)),
-            hcat(value.(delta), zeros(24, 400)),
-            fill("delta_more", (1, 600)),
-            hcat(value.(delta_more), zeros(24, 400)),
-            fill("delta_less", (1, 600)),
-            hcat(value.(delta_less), zeros(24, 400)),
-            fill("p_real", (1, 600)),
-            Matrix(p_real),
-            fill("system", (1, 600)),
-            Matrix(system),
-            fill("profit", (1, 600)),
-            hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
+# data = vcat(fill("p_DA", (1, 600)),
+#             hcat(p_DA, zeros(24, 599)),
+#             fill("DA_price", (1,600)),
+#             Matrix(price_DA),
+#             fill("bal_price",(1,600)),
+#             hcat(value.(bal_price), zeros(24, 400)),
+#             fill("delta", (1, 600)),
+#             hcat(value.(delta), zeros(24, 400)),
+#             fill("delta_more", (1, 600)),
+#             hcat(value.(delta_more), zeros(24, 400)),
+#             fill("delta_less", (1, 600)),
+#             hcat(value.(delta_less), zeros(24, 400)),
+#             fill("p_real", (1, 600)),
+#             Matrix(p_real),
+#             fill("system", (1, 600)),
+#             Matrix(system),
+#             fill("profit", (1, 600)),
+#             hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
 
 # CSV.write("step_1_2.csv", Tables.table(data))

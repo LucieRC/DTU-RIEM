@@ -1,8 +1,6 @@
 
 # IMPORTS
 using Pkg, Gurobi, JuMP, DataFrames, Cbc, CSV, DataFrames, Plots
-cd("C:/Users/Lucie/Documents/ECOLES/DTU/Renewables in electricity markets/GitHub/DTU-RIEM/Assignment 2")
-
 
 
 # INPUTS
@@ -95,17 +93,25 @@ demands_to_nodes = Dict(value => key for (key, value) in connected_demands)
 
 
 # SETS AND PARAMETERS
-M = [500, 154, 500, 10000]
+# M = [500, 154, 500, 10000]
+M = [500, 10, 250, 10, 400, 100, 3000, 10]
 # P_max_k = data_demand[:,"Quantity"]
 P_max_k_hourly = Matrix(hourly_data[:,2:5])'
 P_max_i = data_generators[1:4,"P_max_i"]
 P_max_i_hourly = repeat(P_max_i',outer=[24])'
 P_max_j = data_generators[5:8,"P_max_i"]
 P_max_j_hourly = repeat(P_max_j',outer=[24])'
-P_max_j_hourly[1,:] = hourly_data[:,"O1"]*450
+P_max_j_hourly[1,:] = hourly_data[:,"capa_factor_O1"]*450
 C_i = data_generators[1:4,"Offer_price"]
+C_i
 C_j = data_generators[5:8,"Offer_price"]
-alpha_bid = data_demand[:,"Bid_price"]
+percent_load = 0.01*data_demand[:,"Percent_system_load"]
+alpha_bid = hourly_data[:,"avg_bid_price"]
+alpha_bid1 = 1.06*alpha_bid
+alpha_bid2 = 0.98*alpha_bid
+alpha_bid3 = 0.92*alpha_bid
+alpha_bid4 = 0.9*alpha_bid
+alpha_bid = [alpha_bid1 alpha_bid2 alpha_bid3 alpha_bid4]'
 D_max = data_demand[:,"Quantity"]
 ramp_limits = data_generators[:,"Ramp_limit"]
 
@@ -118,7 +124,7 @@ m2_5 = Model(Gurobi.Optimizer)
 @variable(m2_5, alpha_offer[i in 1:4, t in 1:24] >= 0)
 @variable(m2_5, d[k in 1:4, t in 1:24])
 @variable(m2_5, p_i[i in 1:4, t in 1:24])
-@variable(m2_5, p_j[i in 1:4, t in 1:24])
+@variable(m2_5, p_j[j in 1:4, t in 1:24])
 
 @variable(m2_5, mu_down_k[k in 1:4, t in 1:24] >= 0)
 @variable(m2_5, mu_up_k[k in 1:4, t in 1:24] >= 0)
@@ -146,7 +152,7 @@ m2_5 = Model(Gurobi.Optimizer)
 
 # OBJECTIVE
 @objective(m2_5, Max,  sum(- sum(p_i[i,t]*C_i[i] for i in 1:4)  
-                        + sum(alpha_bid[k]*d[k,t] for k in 1:4)   
+                        + sum(alpha_bid[k,t]*d[k,t] for k in 1:4)   
                         - sum(C_j[j]*p_j[j,t] for j in 1:4)
                         - sum(mu_up_k[k,t]*D_max[k] for k in 1:4)     
                         - sum(mu_up_j[j,t]*P_max_j_hourly[j,t] for j in 1:4)   
@@ -154,7 +160,7 @@ m2_5 = Model(Gurobi.Optimizer)
 
 
 # CONSTRAINTS
-@constraint(m2_5, opti_cond1[k in 1:4, t in 1:24], -alpha_bid[k] + mu_up_k[k,t] - mu_down_k[k,t] + lambda[demands_to_nodes[[k]],t] == 0)
+@constraint(m2_5, opti_cond1[k in 1:4, t in 1:24], -alpha_bid[k,t] + mu_up_k[k,t] - mu_down_k[k,t] + lambda[demands_to_nodes[[k]],t] == 0)
 @constraint(m2_5, opti_cond2[i in 1:4, t in 1:24], alpha_offer[i,t] + mu_up_i[i,t] - mu_down_i[i] - lambda[strategic_to_nodes[[i]],t] == 0)
 @constraint(m2_5, opti_cond3[j in 1:4, t in 1:24], C_j[j] + mu_up_j[j,t] - mu_down_j[j,t] - lambda[non_strategic_to_nodes[[j+4]],t] == 0)
 
@@ -168,38 +174,38 @@ end
 
 @constraint(m2_5, compl_cst1_1[k in 1:4, t in 1:24], 0 <= (P_max_k_hourly[k,t] - d[k,t]))
 @constraint(m2_5, compl_cst1_3[k in 1:4, t in 1:24], (P_max_k_hourly[k,t] - d[k,t]) <= psi_1[k,t]*M[1])
-@constraint(m2_5, compl_cst1_4[k in 1:4, t in 1:24], mu_up_k[k,t] <= (1-psi_1[k,t])*M[1])
+@constraint(m2_5, compl_cst1_4[k in 1:4, t in 1:24], mu_up_k[k,t] <= (1-psi_1[k,t])*M[2])
 
 @constraint(m2_5, compl_cst2_1[k in 1:4, t in 1:24], 0 <= d[k,t])
 @constraint(m2_5, compl_cst2_3[k in 1:4, t in 1:24], d[k,t] <= psi_2[k,t]*M[1])
-@constraint(m2_5, compl_cst2_4[k in 1:4, t in 1:24], mu_down_k[k,t] <= (1-psi_2[k,t])*M[1])
+@constraint(m2_5, compl_cst2_4[k in 1:4, t in 1:24], mu_down_k[k,t] <= (1-psi_2[k,t])*M[2])
 
 @constraint(m2_5, compl_cst3_1[i in 1:4, t in 1:24], 0 <= (P_max_i_hourly[i,t] - p_i[i,t]))
-@constraint(m2_5, compl_cst3_3[i in 1:4, t in 1:24], (P_max_i_hourly[i,t] - p_i[i,t]) <= psi_3[i,t]*M[2])
-@constraint(m2_5, compl_cst3_4[i in 1:4, t in 1:24], mu_up_i[i,t] <= (1-psi_3[i,t])*M[2])
+@constraint(m2_5, compl_cst3_3[i in 1:4, t in 1:24], (P_max_i_hourly[i,t] - p_i[i,t]) <= psi_3[i,t]*M[3])
+@constraint(m2_5, compl_cst3_4[i in 1:4, t in 1:24], mu_up_i[i,t] <= (1-psi_3[i,t])*M[4])
 
 @constraint(m2_5, compl_cst4_1[i in 1:4, t in 1:24], 0 <= p_i[i,t])
-@constraint(m2_5, compl_cst4_3[i in 1:4, t in 1:24], p_i[i,t] <= psi_4[i,t]*M[2])
-@constraint(m2_5, compl_cst4_4[i in 1:4, t in 1:24], mu_down_i[i] <= (1-psi_4[i,t])*M[2])
+@constraint(m2_5, compl_cst4_3[i in 1:4, t in 1:24], p_i[i,t] <= psi_4[i,t]*M[3])
+@constraint(m2_5, compl_cst4_4[i in 1:4, t in 1:24], mu_down_i[i] <= (1-psi_4[i,t])*M[4])
 
 @constraint(m2_5, compl_cst5_1[j in 1:4, t in 1:24], 0 <= (P_max_j_hourly[j,t]-p_j[j,t]))
-@constraint(m2_5, compl_cst5_3[j in 1:4, t in 1:24], (P_max_j_hourly[j,t]-p_j[j,t]) <= psi_5[j,t]*M[3])
-@constraint(m2_5, compl_cst5_4[j in 1:4, t in 1:24], mu_up_j[j,t] <= (1-psi_5[j,t])*M[3])
+@constraint(m2_5, compl_cst5_3[j in 1:4, t in 1:24], (P_max_j_hourly[j,t]-p_j[j,t]) <= psi_5[j,t]*M[5])
+@constraint(m2_5, compl_cst5_4[j in 1:4, t in 1:24], mu_up_j[j,t] <= (1-psi_5[j,t])*M[6])
 
 @constraint(m2_5, compl_cst6_1[j in 1:4, t in 1:24], 0 <= p_j[j,t])
-@constraint(m2_5, compl_cst6_3[j in 1:4, t in 1:24], p_j[j,t] <= psi_6[j,t]*M[3])
-@constraint(m2_5, compl_cst6_4[j in 1:4, t in 1:24], mu_down_j[j,t] <= (1-psi_6[j,t])*M[3])
+@constraint(m2_5, compl_cst6_3[j in 1:4, t in 1:24], p_j[j,t] <= psi_6[j,t]*M[5])
+@constraint(m2_5, compl_cst6_4[j in 1:4, t in 1:24], mu_down_j[j,t] <= (1-psi_6[j,t])*M[6])
 
 for t in 1:24, n in 1:6, m in get_connected_nodes(n)
     @constraint(m2_5, 0 <= (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])))
-    @constraint(m2_5, (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])) <= psi_7[n,m,t]*M[4])
-    @constraint(m2_5, eta_down_n_m[n,m,t] <= (1-psi_7[n,m,t])*M[4])
+    @constraint(m2_5, (get_capacity_line(n,m) + get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])) <= psi_7[n,m,t]*M[7])
+    @constraint(m2_5, eta_down_n_m[n,m,t] <= (1-psi_7[n,m,t])*M[8])
 end 
 
 for t in 1:24, n in 1:6, m in get_connected_nodes(n)
     @constraint(m2_5, 0 <= (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])))
-    @constraint(m2_5, (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])) <= psi_8[n,m,t]*M[4])
-    @constraint(m2_5, eta_up_n_m[n,m,t] <= (1-psi_8[n,m,t])*M[4])
+    @constraint(m2_5, (get_capacity_line(n,m) - get_susceptance_line(n,m)*(theta[n,t] - theta[m,t])) <= psi_8[n,m,t]*M[7])
+    @constraint(m2_5, eta_up_n_m[n,m,t] <= (1-psi_8[n,m,t])*M[8])
 end 
 
 @constraint(m2_5, ramp_strategic[i in 1:4, t in 2:24], p_i[i,t] - p_i[i,t-1] <= ramp_limits[i])
@@ -209,7 +215,28 @@ optimize!(m2_5)
 
 
 
-# MCP_node_hour = value.(reshape([lambda[n,t] for n in 1:6 for t in 1:24], 6, 24))
+# MCP_node_hour = value.(reshape([lambda[n,t] for n in 1:6 for t in 1:24], 24, 6))
 # CSV.write("outputs/step_2_5_MCP_node_hour.csv", Tables.table(MCP_node_hour))
 
 # value.(d)
+
+# println("")
+# println("alpha_offer_i = ", value.(alpha_offer))
+# println("d(demands) = ", value.(d))
+# println("mu_up_k = ", value.(mu_up_k))
+# println("mu_down_k = ", value.(mu_down_k))
+# println("p_i = ", value.(p_i))
+# println("mu_up_i = ", value.(mu_up_i))
+# println("mu_down_i = ", value.(mu_down_i))
+# println("p_j = ", value.(p_j))
+# println("mu_up_j = ", value.(mu_up_j))
+# println("mu_down_j = ", value.(mu_down_j))
+# println("eta_down_n_m = ", value.(eta_down_n_m))
+
+# plot_MCP = plot(1:24,value.(lambda[1,:]),xlabel="Hour of the day",ylabel="Market clearing price",legend=false)
+# savefig(plot_MCP,"step_2_5_MCP.png")
+
+
+# plot(1:24,value.(alpha_offer[:,:]),xlabel="Hour of the day",ylabel="Strategic offer price",legend=false)
+
+# Matrix(alpha_offer)

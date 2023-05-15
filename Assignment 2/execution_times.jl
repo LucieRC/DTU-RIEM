@@ -1,0 +1,6 @@
+@time include("Step1_1.jl")
+@time include("Step1_2_v2.jl")
+@time include("Step2_1.jl")
+@time include("Step2_2_v4.jl")
+@time include("Step2_3.jl")
+@time include("Step2_5_v2.jl")

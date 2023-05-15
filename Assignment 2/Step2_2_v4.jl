@@ -7,15 +7,13 @@ using Pkg, Gurobi, JuMP, DataFrames, Cbc, CSV, DataFrames, Plots
 
 # INPUTS
 # Demand 
-load_location = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
+data_demand = CSV.read("inputs/2demand_load_location_distrib.csv", DataFrame, delim=",")
 # Transmission lines
-transmission_lines = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2transmission_lines_with_susceptance.csv", DataFrame, delim=",")
-# Generation units
-generating_units_details = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2generating_units_without_units.csv", DataFrame)
-# Suppliers
-suppliers_nodes_max_gen = CSV.read("C:/Users/Gabriel Fernandes/Desktop/Personal/_DTU/46755 Renewables in Electricity Markets/Julia Workspace/Assignment 2/Inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
-
-
+data_tlines = CSV.read("inputs/step2_2_data_tlines.csv", DataFrame, delim=",")
+# Generators
+data_generators = CSV.read("inputs/2suppliers_nodes_max_gen.csv", DataFrame, delim=",")
+# Generators details
+data_generators_details = CSV.read("inputs/2generating_units_without_units.csv", DataFrame)
 
 # FUNCTIONS
 function get_the_connected_t_lines(node)
@@ -24,14 +22,14 @@ function get_the_connected_t_lines(node)
     inputs: node of interest
     returns: smaller/bigger nodes t lines connected to it
     """
-    smaller_nodes_t_lines = transmission_lines[transmission_lines[:,"To"].==node, "Idx"]
-    bigger_nodes_t_lines = transmission_lines[transmission_lines[:,"From"].==node, "Idx"]
+    smaller_nodes_t_lines = data_tlines[data_tlines[:,"To"].==node, "Idx"]
+    bigger_nodes_t_lines = data_tlines[data_tlines[:,"From"].==node, "Idx"]
     return(smaller_nodes_t_lines, bigger_nodes_t_lines)
 end
 
 function get_connected_nodes(node)
-    connected_nodes = transmission_lines[transmission_lines[:,"To"].==node, "From"]
-    connected_nodes = vcat(connected_nodes,transmission_lines[transmission_lines[:,"From"].==node, "To"])
+    connected_nodes = data_tlines[data_tlines[:,"To"].==node, "From"]
+    connected_nodes = vcat(connected_nodes,data_tlines[data_tlines[:,"From"].==node, "To"])
     return(connected_nodes)
 end
 
@@ -39,11 +37,11 @@ function get_susceptance_line(node_n,node_m)
     #We have to try and grab one side or the other
     sus_list = []
     try
-        sus_list = append!(sus_list, transmission_lines[transmission_lines[:,"From"].==node_n,:][transmission_lines[transmission_lines[:,"From"].==node_n,:][:,"To"].==node_m,:].Susceptance[1])
+        sus_list = append!(sus_list, data_tlines[data_tlines[:,"From"].==node_n,:][data_tlines[data_tlines[:,"From"].==node_n,:][:,"To"].==node_m,:].Susceptance[1])
     catch
     end
     try
-        sus_list = append!(sus_list, transmission_lines[transmission_lines[:,"From"].==node_m,:][transmission_lines[transmission_lines[:,"From"].==node_m,:][:,"To"].==node_n,:].Susceptance[1]) 
+        sus_list = append!(sus_list, data_tlines[data_tlines[:,"From"].==node_m,:][data_tlines[data_tlines[:,"From"].==node_m,:][:,"To"].==node_n,:].Susceptance[1]) 
     catch
     end
     return(sus_list[1])
@@ -52,22 +50,22 @@ end
 function get_capacity_line(node_n,node_m)
     capa_list = []
     try
-        capa_list = append!(capa_list, transmission_lines[transmission_lines[:,"From"].==node_n,:][transmission_lines[transmission_lines[:,"From"].==node_n,:][:,"To"].==node_m,:].Capacity[1])
+        capa_list = append!(capa_list, data_tlines[data_tlines[:,"From"].==node_n,:][data_tlines[data_tlines[:,"From"].==node_n,:][:,"To"].==node_m,:].Capacity[1])
     catch
     end
     try
-        capa_list = append!(capa_list, transmission_lines[transmission_lines[:,"From"].==node_m,:][transmission_lines[transmission_lines[:,"From"].==node_m,:][:,"To"].==node_n,:].Capacity[1])
+        capa_list = append!(capa_list, data_tlines[data_tlines[:,"From"].==node_m,:][data_tlines[data_tlines[:,"From"].==node_m,:][:,"To"].==node_n,:].Capacity[1])
     catch
     end    
     return(capa_list[1])
 end
 
 function get_description_node(node)
-    strategic_supply = suppliers_nodes_max_gen[suppliers_nodes_max_gen[:,"Strategic"].== true, :]
-    non_strategic_supply = suppliers_nodes_max_gen[suppliers_nodes_max_gen[:,"Strategic"].== false, :]
+    strategic_supply = data_generators[data_generators[:,"Strategic"].== true, :]
+    non_strategic_supply = data_generators[data_generators[:,"Strategic"].== false, :]
     connected_strategic = strategic_supply[strategic_supply[:,"Node"].==node, "Unit"]
     connected_non_strategic = non_strategic_supply[non_strategic_supply[:,"Node"].==node, "Unit"]
-    connected_demands = load_location[load_location[:,"Node"].==node,"Load"] # Int64[] if none
+    connected_demands = data_demand[data_demand[:,"Node"].==node,"Load"] # Int64[] if none
     connected_smaller_nodes_t_lines, connected_bigger_nodes_t_lines = get_the_connected_t_lines(node)
     return(connected_strategic, connected_non_strategic, connected_demands, connected_smaller_nodes_t_lines, connected_bigger_nodes_t_lines)
 end
@@ -98,13 +96,20 @@ demands_to_nodes = Dict(value => key for (key, value) in connected_demands)
 # SETS AND PARAMETERS
 # = [P_max_K, mu, P_max_i, mu, P_max_j, mu, line_capacity + theta, eta_down or eta_up]
 M = [500, 10, 250, 10, 400, 100, 5000, 10000]
-P_max_k = [200 400 300 250]
-P_max_i = [155 100 155 197]
-P_max_j = [337.5 350 210 80]
-C_i = [15.2 23.4 15.2 19.1]
-C_j = [0 5 20.1 24.7]
-alpha_bid = [26.5 24.7 23.1 22.5]
-D_max = [200 400 300 250]
+# P_max_k = [200 400 300 250]
+# P_max_i = [155 100 155 197]
+# P_max_j = [337.5 350 210 80]
+# C_i = [15.2 23.4 15.2 19.1]
+# C_j = [0 5 20.1 24.7]
+# alpha_bid = [26.5 24.7 23.1 22.5]
+# D_max = [200 400 300 250]
+P_max_k = data_demand[:,"Quantity"]
+P_max_i = data_generators[1:4,"P_max_i"]
+P_max_j = data_generators[5:8,"P_max_i"]
+C_i = data_generators[1:4,"Offer_price"]
+C_j = data_generators[5:8,"Offer_price"]
+alpha_bid = data_demand[:,"Bid_price"]
+D_max = data_demand[:,"Quantity"]
 
 
 # MODEL
@@ -145,10 +150,6 @@ model = Model(Gurobi.Optimizer)
                         - sum(mu_up_k[k]*D_max[k] for k in 1:4)     
                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m) for n in 1:6 for m in get_connected_nodes(n)))
-# @objective(model, Max, sum(mu_up_k[k]*D_max[k] for k in 1:4)     
-#                         - sum(mu_up_i[i]*P_max_i[i] for i in 1:4)
-#                         - sum(mu_up_j[j]*P_max_j[j] for j in 1:4)   
-#                         - sum((eta_down_n_m[n,m] + eta_up_n_m[n,m])*get_capacity_line(n,m)*1000 for n in 1:6 for m in get_connected_nodes(n)))
 
 
 @constraint(model, opti_cond1[k in 1:4], -alpha_bid[k] + mu_up_k[k] - mu_down_k[k] + lambda[demands_to_nodes[[k]]] == 0)
@@ -199,17 +200,19 @@ for n in 1:6, m in get_connected_nodes(n)
     @constraint(model, eta_up_n_m[n,m] <= (1-psi_8[n,m])*M[8])
 end 
 
-
 optimize!(model)
-println("")
-println("alpha_offer_i = ", value.(alpha_offer_i))
-println("d(demands) = ", value.(d))
-println("mu_up_k = ", value.(mu_up_k))
-println("mu_down_k = ", value.(mu_down_k))
-println("p_i = ", value.(p_i))
-println("mu_up_i = ", value.(mu_up_i))
-println("mu_down_i = ", value.(mu_down_i))
-println("p_j = ", value.(p_j))
-println("mu_up_j = ", value.(mu_up_j))
-println("mu_down_j = ", value.(mu_down_j))
-println("eta_down_n_m = ", value.(eta_down_n_m))
+
+
+
+# println("")
+# println("alpha_offer_i = ", value.(alpha_offer_i))
+# println("d(demands) = ", value.(d))
+# println("mu_up_k = ", value.(mu_up_k))
+# println("mu_down_k = ", value.(mu_down_k))
+# println("p_i = ", value.(p_i))
+# println("mu_up_i = ", value.(mu_up_i))
+# println("mu_down_i = ", value.(mu_down_i))
+# println("p_j = ", value.(p_j))
+# println("mu_up_j = ", value.(mu_up_j))
+# println("mu_down_j = ", value.(mu_down_j))
+# println("eta_down_n_m = ", value.(eta_down_n_m))

@@ -3,9 +3,9 @@
 using Pkg, Gurobi, JuMP, Cbc, CSV, DataFrames, Random
 
 #Import the parameters from the CSVs, please change the directory
-p_Real_raw = CSV.read("inputs_wind.csv", DataFrame, delim=",")
-price_raw = CSV.read("inputs_price.csv", DataFrame, delim=",")
-system_raw = CSV.read("inputs_system.csv", DataFrame, delim=",")
+p_Real_raw = CSV.read("inputs/inputs_wind.csv", DataFrame, delim=",")
+price_raw = CSV.read("inputs/inputs_price.csv", DataFrame, delim=",")
+system_raw = CSV.read("inputs/inputs_system.csv", DataFrame, delim=",")
 
 #Re-order the parameters so the scenarios are random
 Random.seed!(69)
@@ -48,22 +48,22 @@ model = Model(Gurobi.Optimizer)
 optimize!(model)
 
 #Put the values of interest in a CSV
-value.(reshape(p_DA, 24, 1))
-value.(delta)
-p_Real = Matrix(p_Real)
-system = Matrix(system)
-profit = [sum(price_DA[t,w]*p_DA[t] + price_Bal[t,w]*delta[t,w] for t in 1:24) for w in 1:inSample]'
+# value.(reshape(p_DA, 24, 1))
+# value.(delta)
+# p_Real = Matrix(p_Real)
+# system = Matrix(system)
+# profit = [sum(price_DA[t,w]*p_DA[t] + price_Bal[t,w]*delta[t,w] for t in 1:24) for w in 1:inSample]'
             
-data = vcat(fill("p_DA", (1, 600)),
-            hcat(value.(reshape(p_DA, 24, 1)), zeros(24, 599)),
-            fill("delta", (1, 600)),
-            hcat(value.(delta), zeros(24, 400)),
-            fill("p_Real", (1, 600)),
-            p_Real,
-            fill("system", (1, 600)),
-            system,
-            fill("profit", (1, 600)),
-            hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
+# data = vcat(fill("p_DA", (1, 600)),
+#             hcat(value.(reshape(p_DA, 24, 1)), zeros(24, 599)),
+#             fill("delta", (1, 600)),
+#             hcat(value.(delta), zeros(24, 400)),
+#             fill("p_Real", (1, 600)),
+#             p_Real,
+#             fill("system", (1, 600)),
+#             system,
+#             fill("profit", (1, 600)),
+#             hcat(value.(reshape(profit, 1, 200)), zeros(1, 400)))
 
 # CSV.write("step_1_1.csv", Tables.table(data))
 
